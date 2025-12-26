@@ -28,7 +28,6 @@ class TwigFilter
                 'backtrans'     => [$this, 'filterTranslate'],
                 'css_var'       => [$this, 'filterCssVars'],
                 'email_link'    => [$this, 'filterEmailLink'],
-                // 'fa'            => [$this, 'filterFontAwesome'],
                 'filesize'      => [$this, 'filterFileSize'],
                 'frontenduser'  => [$this, 'filterFrontendUser'],
                 'image_text'    => [$this, 'filterAddImageText'],
