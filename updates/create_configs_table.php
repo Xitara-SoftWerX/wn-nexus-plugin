@@ -1,4 +1,6 @@
-<?php namespace Xitara\Nexus\Updates;
+<?php
+
+namespace Xitara\Nexus\Updates;
 
 use Schema;
 use Winter\Storm\Database\Updates\Migration;

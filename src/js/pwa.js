@@ -1,5 +1,5 @@
 // import { qs, qsa, $on, $delegate } from './utils';
-import { qs, $on } from './utils';
+import { qs, $on } from './utils.js';
 
 $on(window, 'load', () => {
     // new PWAConfApp();

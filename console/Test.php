@@ -1,4 +1,6 @@
-<?php namespace Xitara\Nexus\Console;
+<?php
+
+namespace Xitara\Nexus\Console;
 
 use Illuminate\Console\Command;
 

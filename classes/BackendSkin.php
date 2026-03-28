@@ -1,4 +1,6 @@
-<?php namespace Xitara\Nexus\Classes;
+<?php
+
+namespace Xitara\Nexus\Classes;
 
 use Backend\Skins\Standard;
 

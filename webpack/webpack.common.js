@@ -1,66 +1,77 @@
-// Aufruf: yarn build --env v=sl no-cl
-// Parameter optional.
-// v -> Export-Prefix
-// no-cl -> alle console.log() entfernen
-
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
-import TailwindCSS from 'tailwindcss';
-import TerserPlugin from 'terser-webpack-plugin';
-import { paths } from './paths.js';
-// const glob = require('glob');
+// import TailwindCSS from '@tailwindcss/postcss7-compat'; // Update import
+import fs from 'fs';
+import path from 'path';
 
-// const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-// const CopyWebpackPlugin = require('copy-webpack-plugin');
-// const TailwindCSS = require('tailwindcss');
-// const TerserPlugin = require('terser-webpack-plugin');
-// const paths = require('./paths');
-// const glob = require('glob');
+/**
+ * Common configuration
+ * @param {Object} config
+ * @param {Object} process
+ * @returns {Object}
+ */
+export const commonConfig = (config, process) => {
+    console.log('process.custom', process.custom);
 
-// module.exports = {
-// module.exports = (mode, v = false) => {
-export const commonConfig = (process) => {
-    console.log('Mode: ', process.env.NODE_ENV);
-    console.log('Var: ', process.env.VAR);
-    console.log('Remove console: ', process.env.NO_CL);
+    /**
+     * Get version from ShoplyticsDataLayerBoilerplateConfig.ts
+     */
+    // const versionFile = fs.readFileSync(
+    // path.resolve('./src/ts/dataLayer-builder/ShoplyticsDataLayerBoilerplateConfig.ts'),
+    // 'utf8'
+    // );
+    // const match = /version\s*:\s*['"]([^'"]+)['"]/.exec(versionFile);
+    // const VERSION = match ? match[1] : 'dev';
+    const VERSION = process.custom.VERSION || 'dev';
+    const ENTRYPOINT = process.custom.ENTRYPOINT || 'none';
 
+    // console.log(`Building Shoplytics DataLayer Boilerplate v${VERSION}`);
+    // console.log('ENTRYPOINT', ENTRYPOINT);
+    // console.log('ENTRYPOINT', { [ENTRYPOINT]: config.entrypoints[ENTRYPOINT] });
+
+    /**
+     * Define app directory
+     */
+    const appDirectory = fs.realpathSync(process.cwd());
+    const resolveApp = (relativePath) => path.resolve(appDirectory, relativePath);
+
+    /**
+     * Define parameters
+     */
+    const mode = process.env.NODE_ENV;
+    const lib = process.custom.lib
+        ? process.custom.lib
+        : config.library != ''
+          ? config.library
+          : undefined;
+    let entrypoint;
+
+    if (typeof config.entrypoints[ENTRYPOINT] === 'object') {
+        entrypoint = config.entrypoints[ENTRYPOINT].entry;
+    } else {
+        entrypoint = config.entrypoints[ENTRYPOINT];
+    }
+
+    /**
+     * Define common configuration
+     */
     return {
-        context: paths.src,
-        entry: {
-            // 'shoplytics_datalayer-builder': './ts/datalayer-builder/app.ts',
-            'shoplytics_datalayer-builder-modified': './ts/datalayer-builder/modified.ts',
-            // 'shoplytics_datalayer-builder-xt-commerce': './ts/datalayer-builder/xt-commerce.ts',
-            // 'shoplytics_datalayer-builder-joomla': './ts/datalayer-builder/joomla.ts',
-            // 'shoplytics_datalayer-builder-shopware': './ts/datalayer-builder/shopware.ts',
-            // 'shoplytics_datalayer-builder-woocommerce': './ts/datalayer-builder/woocommerce.ts',
-            // 'shoplytics_datalayer-builder-plentymarkets': './ts/datalayer-builder/plentymarkets.ts',
-            // 'shoplytics_datalayer-builder-shopify': './ts/datalayer-builder/shopify.ts',
-            // 'shoplytics_datalayer-builder-thaigutschein': './ts/datalayer-builder/thaigutschein.ts',
-            // shoplytics_consent_banner: './ts/shoplytics-consent-banner/app.ts',
-            // shoplytics_form_autotracking: './js/shoplytics_form_autotracking.js',
-            // pushDataLayer: './js/pushDataLayer.js',
-            // customPixel: './ts/customPixel.ts',
-            // app: `./js/app.js`,
-            // app_ts: `./ts/app.ts`,
-            // print: `./scss/print.scss`,
-            // breakpoints: `./scss/breakpoints.scss`,
-        },
+        context: resolveApp(config.sourceDir),
+        entry: { [ENTRYPOINT]: entrypoint },
         output: {
-            filename: `assets/js/[name]${process.env.NODE_ENV == 'development' ? '.debug' : ''}.js`,
-            // devtoolModuleFilenameTemplate: '[resource-path]',
-            path: paths.build,
+            // filename: `js/[name]-${VERSION}${mode == 'development' ? '.debug' : ''}.js`,
+            filename: `js/[name]${mode == 'development' ? '.debug' : ''}.js`,
+            devtoolModuleFilenameTemplate: 'webpack://[namespace]/[resource-path]?[loaders]',
+            path: resolveApp(config.outputDir),
             // Example:
-            // export const initFormConversion = () => {}
-            // Call: sl.initFormConversion();
-            // library: undefined,
-            library:
-                process.env.VAR !== 'undefined'
-                    ? {
-                          name: process.env.VAR,
-                          //   name: 'sl',
-                          type: 'var',
-                      }
-                    : undefined,
+            // export const init = () => {}
+            // Call: [lib].init();
+            library: lib
+                ? {
+                      name: lib,
+                      type: 'var',
+                  }
+                : undefined,
         },
         resolve: {
             symlinks: false,
@@ -111,16 +122,10 @@ export const commonConfig = (process) => {
                                 postcssOptions: {
                                     sourceMap: true,
                                     plugins: [
-                                        // require('tailwindcss'),
-                                        // require('autoprefixer'),
-                                        // import 'postcss-flexbugs-fixes',
-                                        // require('tailwindcss'),
-                                        // require('autoprefixer'),
-                                        // require('postcss-flexbugs-fixes'),
+                                        'autoprefixer',
+                                        'postcss-flexbugs-fixes',
+                                        // TailwindCSS('./tailwind.config.cjs'), // Update path to .cjs file
                                     ],
-                                    // postCss: [
-                                    // TailwindCSS('tailwind.config.js'),
-                                    // ],
                                     processCssUrls: false,
                                 },
                             },
@@ -165,14 +170,15 @@ export const commonConfig = (process) => {
         },
         plugins: [
             new MiniCssExtractPlugin({
-                filename: 'assets/css/[name].css',
-                chunkFilename: 'assets/css/[name].[id].css',
+                filename: 'css/[name].css',
+                chunkFilename: 'css/[name].[id].css',
             }),
             new CopyWebpackPlugin({
                 patterns: [
                     {
-                        from: paths.static,
-                        noErrorOnMissing: true,
+                        from: resolveApp(config.staticDir),
+                        to: resolveApp(config.outputDir + '/../'),
+                        // noErrorOnMissing: true,
                         globOptions: {
                             dot: true,
                             gitignore: false,

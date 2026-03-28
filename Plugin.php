@@ -4,16 +4,17 @@ namespace Xitara\Nexus;
 
 use App;
 use Backend;
-use BackendAuth;
-use BackendMenu;
 use Backend\Controllers\Users;
 use Backend\Models\Preference;
 use Backend\Models\User;
 use Backend\Models\UserRole;
+use BackendAuth;
+use BackendMenu;
 use Config;
 use Event;
 use File;
 use Flash;
+use Log;
 use Redirect;
 use Str;
 use System\Classes\PluginBase;
@@ -22,7 +23,6 @@ use Xitara\Nexus\Models\CustomMenu;
 use Xitara\Nexus\Models\Menu;
 use Xitara\Nexus\Models\Settings as NexusSettings;
 use Yaml;
-use Log;
 
 class Plugin extends PluginBase
 {
@@ -39,12 +39,12 @@ class Plugin extends PluginBase
     public function pluginDetails()
     {
         return [
-            'name'        => 'xitara.nexus::lang.plugin.name',
+            'name' => 'xitara.nexus::lang.plugin.name',
             'description' => 'xitara.nexus::lang.plugin.description',
-            'author'      => 'xitara.nexus::lang.plugin.author',
-            'homepage'    => 'xitara.nexus::lang.plugin.homepage',
-            'icon'        => '',
-            'iconSvg'     => 'plugins/xitara/nexus/assets/images/icon-nexus.svg',
+            'author' => 'xitara.nexus::lang.plugin.author',
+            'homepage' => 'xitara.nexus::lang.plugin.homepage',
+            'icon' => '',
+            'iconSvg' => 'plugins/xitara/nexus/assets/images/icon-nexus.svg',
         ];
     }
 
@@ -69,7 +69,7 @@ class Plugin extends PluginBase
         /**
          * include helpers
          */
-        include_once dirname(__FILE__) . '/' . 'helpers.php';
+        include_once \dirname(__FILE__) . '/' . 'helpers.php';
 
         // Check if we are currently in backend module.
         if (!App::runningInBackend()) {
@@ -167,6 +167,7 @@ class Plugin extends PluginBase
                 $user->delete();
                 BackendAuth::logout($user);
                 Flash::success('Account erfolgreich deaktiviert');
+
                 return Redirect::to('/backend');
             });
         });
@@ -197,11 +198,11 @@ class Plugin extends PluginBase
             if (\Request::segment(4) == 'myaccount') {
                 $form->addTabFields([
                     'deleteAccount' => [
-                        'tab'     => 'backend::lang.user.account',
-                        'label'   => 'xitara.nexus::lang.deleteAccount.label',
+                        'tab' => 'backend::lang.user.account',
+                        'label' => 'xitara.nexus::lang.deleteAccount.label',
                         'comment' => 'xitara.nexus::lang.deleteAccount.comment',
-                        'type'    => 'partial',
-                        'path'    => '$/xitara/nexus/partials/_deleteaccount.htm',
+                        'type' => 'partial',
+                        'path' => '$/xitara/nexus/partials/_deleteaccount.htm',
                     ],
                 ]);
             }
@@ -221,12 +222,12 @@ class Plugin extends PluginBase
 
         return [
             'settings' => [
-                'category'    => $category,
-                'label'       => 'xitara.nexus::lang.settings.label',
+                'category' => $category,
+                'label' => 'xitara.nexus::lang.settings.label',
                 'description' => 'xitara.nexus::lang.settings.description',
-                'icon'        => 'icon-wrench',
-                'class'       => 'Xitara\Nexus\Models\Settings',
-                'order'       => 0,
+                'icon' => 'icon-wrench',
+                'class' => 'Xitara\Nexus\Models\Settings',
+                'order' => 0,
                 'permissions' => ['xitara.nexus.settings'],
             ],
         ];
@@ -240,24 +241,24 @@ class Plugin extends PluginBase
     public function registerPermissions()
     {
         $permissions = [
-            'xitara.nexus.mainmenu'    => [
-                'tab'   => 'Xitara Nexus',
+            'xitara.nexus.mainmenu' => [
+                'tab' => 'Xitara Nexus',
                 'label' => 'xitara.nexus::permissions.mainmenu',
             ],
-            'xitara.nexus.settings'    => [
-                'tab'   => 'Xitara Nexus',
+            'xitara.nexus.settings' => [
+                'tab' => 'Xitara Nexus',
                 'label' => 'xitara.nexus::permissions.settings',
             ],
-            'xitara.nexus.dashboard'   => [
-                'tab'   => 'Xitara Nexus',
+            'xitara.nexus.dashboard' => [
+                'tab' => 'Xitara Nexus',
                 'label' => 'xitara.nexus::permissions.dashboard',
             ],
-            'xitara.nexus.menu'        => [
-                'tab'   => 'Xitara Nexus',
+            'xitara.nexus.menu' => [
+                'tab' => 'Xitara Nexus',
                 'label' => 'xitara.nexus::permissions.menu',
             ],
             'xitara.nexus.custommenus' => [
-                'tab'   => 'Xitara Nexus',
+                'tab' => 'Xitara Nexus',
                 'label' => 'xitara.nexus::permissions.custommenus',
             ],
         ];
@@ -267,7 +268,7 @@ class Plugin extends PluginBase
         if ($menus !== null) {
             foreach ($menus as $menu) {
                 $permissions['xitara.nexus.custommenu.' . $menu->slug] = [
-                    'tab'   => 'Xitara Nexus Custom Menus',
+                    'tab' => 'Xitara Nexus Custom Menus',
                     'label' => $menu->name,
                 ];
             }
@@ -283,7 +284,7 @@ class Plugin extends PluginBase
      */
     public function registerNavigation()
     {
-        $nexus   = NexusSettings::instance();
+        $nexus = NexusSettings::instance();
         $iconSvg = '';
 
         if ($nexus->menu_icon_uploaded) {
@@ -298,12 +299,12 @@ class Plugin extends PluginBase
 
         return [
             'nexus' => [
-                'label'       => $label,
-                'url'         => Backend::url('xitara/nexus/dashboard'),
-                'icon'        => NexusSettings::get('menu_icon_text', 'icon-leaf'),
-                'iconSvg'     => $iconSvg,
+                'label' => $label,
+                'url' => Backend::url('xitara/nexus/dashboard'),
+                'icon' => NexusSettings::get('menu_icon_text', 'icon-leaf'),
+                'iconSvg' => $iconSvg,
                 'permissions' => ['xitara.nexus.*'],
-                'order'       => 50,
+                'order' => 50,
             ],
         ];
     }
@@ -336,14 +337,18 @@ class Plugin extends PluginBase
      *     description -> showed under label (optional)
      *
      * @autor   mburghammer
+     *
      * @date    2018-05-15T20:49:04+0100
+     *
      * @version 0.0.3
+     *
      * @since   0.0.1
      * @since   0.0.2 added groups
      * @since   0.0.3 added attributes
-     * @param   string                   $owner
-     * @param   string                   $code
-     * @param   array                   $inject
+     *
+     * @param string $owner
+     * @param string $code
+     * @param array  $inject
      */
     public static function getSideMenu(string $owner, string $code)
     {
@@ -354,38 +359,38 @@ class Plugin extends PluginBase
         // Log::debug($group);
         $i = 0;
         $items = [
-            'nexus.dashboard'   => [
-                'label'       => 'xitara.nexus::lang.nexus.dashboard',
-                'url'         => Backend::url('xitara/nexus/dashboard'),
-                'icon'        => 'icon-dashboard',
-                'order'       => 1,
+            'nexus.dashboard' => [
+                'label' => 'xitara.nexus::lang.nexus.dashboard',
+                'url' => Backend::url('xitara/nexus/dashboard'),
+                'icon' => 'icon-dashboard',
+                'order' => 1,
                 'permissions' => [
                     'xitara.nexus.mainmenu',
                     'xitara.nexus.dashboard',
                 ],
-                'attributes'  => [
+                'attributes' => [
                     'group' => $group,
                 ],
                 'order' => $i++,
             ],
-            'nexus.menu'        => [
-                'label'       => 'xitara.nexus::lang.nexus.menu',
-                'url'         => Backend::url('xitara/nexus/menu/reorder'),
-                'icon'        => 'icon-sort',
-                'order'       => 2,
+            'nexus.menu' => [
+                'label' => 'xitara.nexus::lang.nexus.menu',
+                'url' => Backend::url('xitara/nexus/menu/reorder'),
+                'icon' => 'icon-sort',
+                'order' => 2,
                 'permissions' => ['xitara.nexus.menu'],
-                'attributes'  => [
+                'attributes' => [
                     'group' => $group,
                 ],
                 'order' => $i++,
             ],
             'nexus.custommenus' => [
-                'label'       => 'xitara.nexus::lang.custommenu.label',
-                'url'         => Backend::url('xitara/nexus/custommenus'),
-                'icon'        => 'icon-link',
-                'order'       => 3,
+                'label' => 'xitara.nexus::lang.custommenu.label',
+                'url' => Backend::url('xitara/nexus/custommenus'),
+                'icon' => 'icon-link',
+                'order' => 3,
                 'permissions' => ['xitara.nexus.custommenus'],
-                'attributes'  => [
+                'attributes' => [
                     'group' => $group,
                 ],
                 'order' => $i++,
@@ -410,7 +415,7 @@ class Plugin extends PluginBase
                 } else {
                     $inject = $plugin->injectSideMenu();
                 }
-                $items  = array_merge($items, $inject);
+                $items = array_merge($items, $inject);
                 // }
             }
         }
@@ -425,14 +430,16 @@ class Plugin extends PluginBase
 
     /**
      * @param String $code
+     *
      * @return mixed
      */
-    public static function getMenuOrder(string $code): int
+    public static function getMenuOrder(string $code) : int
     {
         $item = Menu::find($code);
 
         if ($item === null) {
             Menu::create(['code' => $code, 'sort_order' => 9999]);
+
             return 9999;
         }
 
@@ -441,11 +448,14 @@ class Plugin extends PluginBase
 
     /**
      * inject into sidemenu
+     *
      * @autor   mburghammer
+     *
      * @date    2020-06-26T21:13:34+02:00
      *
      * @see Xitara\Nexus::getSideMenu
-     * @return  array                   sidemenu-data
+     *
+     * @return array sidemenu-data
      */
     public static function injectSideMenu()
     {
@@ -483,21 +493,21 @@ class Plugin extends PluginBase
                     }
 
                     $inject[$namespace . '.' . Str::slug($link['text'])] = [
-                        'label'       => $link['text'],
-                        'url'         => $link['link'],
-                        'icon'        => $icon ?? null,
-                        'iconSvg'     => $iconSvg,
+                        'label' => $link['text'],
+                        'url' => $link['link'],
+                        'icon' => $icon ?? null,
+                        'iconSvg' => $iconSvg,
                         'permissions' => [
                             $namespace . '.' . $custommenu->slug,
                         ],
-                        'attributes'  => [
-                            'group'       => $namespace . '.' . $custommenu->slug,
-                            'groupLabel'  => $custommenu->name,
-                            'target'      => ($link['is_blank'] == 1) ? '_blank' : null,
-                            'keywords'    => $link['keywords'] ?? null,
+                        'attributes' => [
+                            'group' => $namespace . '.' . $custommenu->slug,
+                            'groupLabel' => $custommenu->name,
+                            'target' => ($link['is_blank'] == 1) ? '_blank' : null,
+                            'keywords' => $link['keywords'] ?? null,
                             'description' => $link['description'] ?? null,
                         ],
-                        'order'       => self::getMenuOrder($namespace . '.' . $custommenu->slug) + $count++,
+                        'order' => self::getMenuOrder($namespace . '.' . $custommenu->slug) + $count++,
                     ];
                 }
             }
@@ -533,7 +543,7 @@ class Plugin extends PluginBase
                 }
 
                 $configFile = __DIR__ . '/config/timezone.yaml';
-                $config     = Yaml::parse(File::get($configFile));
+                $config = Yaml::parse(File::get($configFile));
                 $widget->addFields($config['fields']);
             });
 
@@ -567,22 +577,24 @@ class Plugin extends PluginBase
     /**
      * @param $localecode
      */
-    public static function getTimezone($localecode = null): string
+    public static function getTimezone($localecode = null) : string
     {
         return self::timezone($localecode);
     }
 
     /**
      * @param $localecode
+     *
      * @return mixed
      */
-    private static function timezone($localecode): string
+    private static function timezone($localecode) : string
     {
         if ($localecode === null) {
             $localecode = \Winter\Translate\Classes\Translator::instance()->getLocale();
         }
 
         $locale = \Winter\Translate\Models\Locale::findByCode($localecode);
+
         return $locale->nexus_timezone ?? Config::get('app.timezone');
     }
 

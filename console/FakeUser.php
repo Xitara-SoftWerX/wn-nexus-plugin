@@ -1,10 +1,11 @@
-<?php namespace Xitara\Nexus\Console;
+<?php
+
+namespace Xitara\Nexus\Console;
 
 use Auth;
 use Db;
 use Faker;
 use Illuminate\Console\Command;
-use Str;
 use Symfony\Component\Console\Input\InputOption;
 
 class FakeUser extends Command
@@ -28,7 +29,7 @@ class FakeUser extends Command
         /**
          * init user
          *
-         * @var integer
+         * @var int
          */
         $userCount = (int) $this->option('user');
 
@@ -54,7 +55,7 @@ class FakeUser extends Command
                 'password_confirmation' => $password,
             ], true);
 
-            $file = new \System\Models\File;
+            $file = new \System\Models\File();
             // $user->avatar = $file->fromUrl('http://mod.andoria/System/fakebilder/' . $faker->numberBetween($min = 1, $max = 20) . '.jpg');
             $user->avatar = $file->fromUrl('https://picsum.photos/800/600?image=' . $i, 'avatar_' . $i . '.jpg');
 

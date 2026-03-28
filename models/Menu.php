@@ -6,6 +6,22 @@ use Model;
 
 /**
  * Menu Model
+ *
+ * @property string|null                                    $code
+ * @property string|null                                    $name
+ * @property int|null                                       $sort_order
+ * @method static \Winter\Storm\Database\Collection<int, static> all($columns = ['*'])
+ * @method static \Winter\Storm\Database\Collection<int, static> get($columns = ['*'])
+ * @method static \Winter\Storm\Database\Builder|Menu            lists(string $column, string $key = null)
+ * @method static \Winter\Storm\Database\Builder|Menu            newModelQuery()
+ * @method static \Winter\Storm\Database\Builder|Menu            newQuery()
+ * @method static \Winter\Storm\Database\Builder|Menu            orSearchWhere(string $term, string $columns = [], string $mode = 'all')
+ * @method static \Winter\Storm\Database\Builder|Menu            query()
+ * @method static \Winter\Storm\Database\Builder|Menu            searchWhere(string $term, string $columns = [], string $mode = 'all')
+ * @method static \Winter\Storm\Database\Builder|Menu            whereCode($value)
+ * @method static \Winter\Storm\Database\Builder|Menu            whereName($value)
+ * @method static \Winter\Storm\Database\Builder|Menu            whereSortOrder($value)
+ * @mixin \Eloquent
  */
 class Menu extends Model
 {

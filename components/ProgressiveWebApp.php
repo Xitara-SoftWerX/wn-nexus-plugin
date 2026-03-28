@@ -1,4 +1,6 @@
-<?php namespace Xitara\Nexus\Components;
+<?php
+
+namespace Xitara\Nexus\Components;
 
 use Cms\Classes\ComponentBase;
 
@@ -10,7 +12,7 @@ class ProgressiveWebApp extends ComponentBase
     public function componentDetails()
     {
         return [
-            'name'        => 'ProgressiveWebApp Component',
+            'name' => 'ProgressiveWebApp Component',
             'description' => 'No description provided yet...',
         ];
     }

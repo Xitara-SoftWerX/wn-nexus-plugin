@@ -4,11 +4,37 @@ namespace Xitara\Nexus\Models;
 
 use Model;
 use Str;
-use Xitara\Nexus\Models\Menu;
-use Log;
 
 /**
  * CustomMenu Model
+ *
+ * @property int                                            $id
+ * @property string|null                                    $name
+ * @property string|null                                    $namespace
+ * @property string|null                                    $slug
+ * @property string|null                                    $links
+ * @property int                                            $is_submenu
+ * @property int                                            $is_active
+ * @property \Illuminate\Support\Carbon|null                $created_at
+ * @property \Illuminate\Support\Carbon|null                $updated_at
+ * @method static \Winter\Storm\Database\Collection<int, static> all($columns = ['*'])
+ * @method static \Winter\Storm\Database\Collection<int, static> get($columns = ['*'])
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      lists(string $column, string $key = null)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      newModelQuery()
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      newQuery()
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      orSearchWhere(string $term, string $columns = [], string $mode = 'all')
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      query()
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      searchWhere(string $term, string $columns = [], string $mode = 'all')
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereCreatedAt($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereId($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereIsActive($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereIsSubmenu($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereLinks($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereName($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereNamespace($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereSlug($value)
+ * @method static \Winter\Storm\Database\Builder|CustomMenu      whereUpdatedAt($value)
+ * @mixin \Eloquent
  */
 class CustomMenu extends Model
 {

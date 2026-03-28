@@ -5,7 +5,7 @@ import TerserPlugin from 'terser-webpack-plugin';
 // const HtmlWebpackPlugin = require('html-webpack-plugin');
 // const TerserPlugin = require('terser-webpack-plugin');
 
-export const development = (process) => {
+export const development = (config) => {
     return {
         output: {
             // filename: '[name].js',
@@ -18,14 +18,11 @@ export const development = (process) => {
                 new TerserPlugin({
                     terserOptions: {
                         format: {
-                            beautify: true, // Beibehaltung der ursprünglichen Formatierung
+                            beautify: true,
                         },
                         mangle: {
-                            reserved: ['slShowCB', 'slHideCB', 'initFormConversion'],
+                            reserved: config.reserveFunctions,
                         },
-                        // compress: {
-                        // drop_console: true
-                        // },
                     },
                     parallel: true,
                     extractComments: false,

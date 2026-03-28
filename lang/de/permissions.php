@@ -1,4 +1,5 @@
 <?php
+
 return [
     'settings' => 'Konfiguration',
     'mainmenu' => 'Wird im Hauptmenü angezeigt (nur nötig wenn alle anderen Berechtigungen deaktiviert sind)',

@@ -18,7 +18,7 @@ function runCommand(command) {
                     line = line.replace(/\s*\[webpack.Progress\]\s*/, '');
                     line = line.replace('<s>', '').trim();
 
-                    process.stdout.write(line + "\x1b[0G");
+                    process.stdout.write(line + '\x1b[0G');
                 }
             });
         });
@@ -35,7 +35,7 @@ function runCommand(command) {
 async function main() {
     try {
         await runCommand(`yarn dbuild ${args.join(' ')}`);
-        await runCommand(`yarn build ${args.join(' ')} --env no-cl`);
+        await runCommand(`yarn build ${args.join(' ')} --rf`);
     } catch (error) {
         console.error('Error executing script: ', error);
     }

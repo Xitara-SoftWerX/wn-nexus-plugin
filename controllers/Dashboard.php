@@ -1,8 +1,10 @@
-<?php namespace Xitara\Nexus\Controllers;
+<?php
 
-use BackendMenu;
+namespace Xitara\Nexus\Controllers;
+
 use Backend\Classes\Controller;
 use Backend\Widgets\ReportContainer;
+use BackendMenu;
 use Cms\Classes\Theme;
 
 /**
@@ -56,7 +58,7 @@ class Dashboard extends Controller
      *
      * Default config can be overridden by adding a file [THEME]/config/dashboard.yaml
      *
-     * @param Model $model
+     * @param  Model $model
      * @return void
      */
     protected function initReportContainer()
@@ -70,12 +72,14 @@ class Dashboard extends Controller
 
         $container = new ReportContainer($this, $config);
         $container->bindToController();
+
         return $container;
     }
 
     public function index_onInitReportContainer()
     {
         $container = $this->initReportContainer();
+
         return ['#nexusReportContainer' => $container->render()];
     }
 
@@ -87,7 +91,9 @@ class Dashboard extends Controller
     {
         if (!$this->user->hasAccess('xitara.nexus.dashboard') && !$this->user->hasAccess('xitara.nexus.show')) {
 
-            $true = function () {return true;};
+            $true = function () {
+                return true;
+            };
 
             if ($first = array_first(BackendMenu::listMainMenuItems(), $true)) {
                 return Redirect::intended($first->url);

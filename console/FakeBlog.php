@@ -1,10 +1,12 @@
-<?php namespace Xitara\Nexus\Console;
+<?php
+
+namespace Xitara\Nexus\Console;
 
 use Illuminate\Console\Command;
-use Winter\Blog\Models\Category;
-use Winter\Blog\Models\Post;
 use Str;
 use Symfony\Component\Console\Input\InputOption;
+use Winter\Blog\Models\Category;
+use Winter\Blog\Models\Post;
 
 class FakeBlog extends Command
 {
@@ -29,7 +31,7 @@ class FakeBlog extends Command
         /**
          * init counter
          *
-         * @var integer
+         * @var int
          */
         $postsCount = (int) $this->option('posts');
         $categoriesCount = (int) $this->option('categories');
@@ -82,7 +84,7 @@ class FakeBlog extends Command
 
     private function generateCategory($name = null)
     {
-        $category = new Category;
+        $category = new Category();
         $category->name = $name ?? $this->faker->text($maxNbChars = 20);
         $category->slug = Str::slug($category->name);
         $category->description = $this->faker->sentence($nbWords = 20, $variableNbWords = true);
@@ -99,7 +101,7 @@ class FakeBlog extends Command
             $content .= '<p>' . $content_ . '</p>' . "\n";
         }
 
-        $post = new Post;
+        $post = new Post();
         $post->title = $this->faker->sentence($nbWords = 6, $variableNbWords = true) . '_' .
         $this->faker->numberBetween($min = 1000, $max = 9000);
         $post->slug = Str::slug($post->title);
@@ -112,7 +114,7 @@ class FakeBlog extends Command
 
         for ($i = 1; $i <= $this->faker->numberBetween($min = 1, $max = 5); $i++) {
             $random = $this->faker->numberBetween($min = 1, $max = 40);
-            $file = new \System\Models\File;
+            $file = new \System\Models\File();
             $file->fromUrl('https://picsum.photos/800/600?random=' . $random, 'image_' . $random . '.jpg');
             $file->save();
             $post->featured_images()->add($file);

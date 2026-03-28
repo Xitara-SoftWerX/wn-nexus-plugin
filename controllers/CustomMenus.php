@@ -1,7 +1,9 @@
-<?php namespace Xitara\Nexus\Controllers;
+<?php
 
-use BackendMenu;
+namespace Xitara\Nexus\Controllers;
+
 use Backend\Classes\Controller;
+use BackendMenu;
 
 /**
  * CustomMenus Back-end Controller

@@ -1,7 +1,9 @@
-<?php namespace Xitara\Nexus\Controllers;
+<?php
 
-use BackendMenu;
+namespace Xitara\Nexus\Controllers;
+
 use Backend\Classes\Controller;
+use BackendMenu;
 use System\Classes\PluginManager;
 use Xitara\Nexus\Models\Menu as MenuModel;
 
@@ -57,7 +59,7 @@ class Menu extends Controller
                     continue;
                 }
 
-                $model = new MenuModel;
+                $model = new MenuModel();
                 $model->code = $code;
                 $model->sort_order = 9999;
                 $model->save();

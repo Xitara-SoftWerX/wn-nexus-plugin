@@ -3,8 +3,8 @@
 namespace Xitara\Nexus\Classes;
 
 use App;
-use Site;
 use Model;
+use Site;
 use Winter\Storm\Database\Collection;
 use Winter\Translate\Models\Locale as LocaleModel;
 
@@ -44,6 +44,7 @@ class Locale
     public static function getDefaultSiteLocale()
     {
         $site = Site::getPrimarySite();
+
         return $site ? $site->hard_locale : '';
     }
 

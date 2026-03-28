@@ -1,4 +1,6 @@
-<?php namespace Xitara\Nexus\Components;
+<?php
+
+namespace Xitara\Nexus\Components;
 
 use Cms\Classes\ComponentBase;
 
@@ -10,7 +12,7 @@ class FontAwsome extends ComponentBase
     public function componentDetails()
     {
         return [
-            'name'        => 'xitara.nexus::fontawsome.name',
+            'name' => 'xitara.nexus::fontawsome.name',
             'description' => 'xitara.nexus::fontawsome.description',
         ];
     }
@@ -37,33 +39,33 @@ class FontAwsome extends ComponentBase
     public function defineProperties()
     {
         return [
-            'regular'        => [
-                'title'       => 'xitara.nexus::fontawsome.regular.label',
+            'regular' => [
+                'title' => 'xitara.nexus::fontawsome.regular.label',
                 'description' => 'xitara.nexus::fontawsome.regular.description',
-                'default'     => 0,
-                'type'        => 'checkbox',
+                'default' => 0,
+                'type' => 'checkbox',
             ],
-            'solid'          => [
-                'title'       => 'xitara.nexus::fontawsome.solid.label',
+            'solid' => [
+                'title' => 'xitara.nexus::fontawsome.solid.label',
                 'description' => 'xitara.nexus::fontawsome.solid.description',
-                'default'     => 0,
-                'type'        => 'checkbox',
+                'default' => 0,
+                'type' => 'checkbox',
             ],
-            'brands'         => [
-                'title'       => 'xitara.nexus::fontawsome.brands.label',
+            'brands' => [
+                'title' => 'xitara.nexus::fontawsome.brands.label',
                 'description' => 'xitara.nexus::fontawsome.brands.description',
-                'default'     => 0,
-                'type'        => 'checkbox',
+                'default' => 0,
+                'type' => 'checkbox',
             ],
             'default_sprite' => [
-                'title'       => 'xitara.nexus::fontawsome.default_sprite.label',
+                'title' => 'xitara.nexus::fontawsome.default_sprite.label',
                 'description' => 'xitara.nexus::fontawsome.default_sprite.description',
-                'default'     => 'regular',
-                'type'        => 'dropdown',
-                'options'     => [
+                'default' => 'regular',
+                'type' => 'dropdown',
+                'options' => [
                     'regular' => 'Regular',
-                    'solid'   => 'Solid',
-                    'brands'  => 'Brands',
+                    'solid' => 'Solid',
+                    'brands' => 'Brands',
                 ],
             ],
         ];

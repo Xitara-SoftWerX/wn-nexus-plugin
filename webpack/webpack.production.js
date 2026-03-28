@@ -1,45 +1,72 @@
-import WebpackAssetsManifest from 'webpack-assets-manifest';
+import { WebpackAssetsManifest } from 'webpack-assets-manifest';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import CssoWebpackPlugin from 'csso-webpack-plugin';
 import { StatsWriterPlugin } from 'webpack-stats-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import CompressionPlugin from 'compression-webpack-plugin';
-// import BrotliPlugin from 'brotli-webpack-plugin';
-// import PurgeCssPlugin from 'purgecss-webpack-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
-// import { paths } from './paths.js';
-// import { glob } from 'glob';
 
-export const production = (process) => {
-    // console.log('Remove console: ', process.env.NO_CL);
+/**
+ * Production configuration
+ * @param {Object} config
+ * @returns
+ */
+export const production = (config) => {
+    /**
+     * Create RegEx pattern to exclude dev entrypoints from minification
+     */
+    // const filePattern = Object.keys(config.entrypointsDev).length
+    //     ? new RegExp(
+    //           Object.values(config.entrypointsDev)
+    //               .map((file) => {
+    //                   const fileName = file.split('/').pop();
+    //                   return fileName.replace('.ts', '.js').replace('.scss', '.css');
+    //               })
+    //               .map((name) => name.replace(/\./g, '\\.'))
+    //               .join('|')
+    //       )
+    //     : undefined;
 
-    const removeFunctions = [];
-    if (process.env.NO_CL === 'true') {
-        removeFunctions.push('console.log');
-        removeFunctions.push('console.warn');
-        removeFunctions.push('console.debug');
-        // removeFunctions.push('console.error');
-    }
-
-    console.log('Remove functions: ', removeFunctions);
-    // export const production = {
+    // console.log('Removing functions type:', typeof config.removeFunctions);
+    // console.log('Removing functions:', config.removeFunctions);
 
     return {
         optimization: {
             minimize: true,
             minimizer: [
+                // new TerserPlugin({
+                //     terserOptions: {
+                //         format: {
+                //             beautify: true,
+                //         },
+                //         mangle: {
+                //             reserved: config.reserveFunctions,
+                //         },
+                //         compress: {
+                //             pure_funcs:
+                //                 process.custom['remove-functions'] === true ||
+                //                 process.custom['rf'] === true
+                //                     ? config.removeFunctions
+                //                     : [],
+                //         },
+                //     },
+                //     include: filePattern,
+                // }),
                 new TerserPlugin({
                     terserOptions: {
+                        compress: true,
                         mangle: {
-                            reserved: ['showCB', 'hideCB', 'initFormConversion'],
+                            reserved: config.reserveFunctions,
                         },
                         compress: {
-                            // drop_console: true,
-                            // drop_console: process.env.NO_CL == 'true' ? true : false,
-                            pure_funcs: removeFunctions,
-                            // pure_funcs: ['console.log', 'console.warn', 'console.debug'],
+                            // pure_funcs: ['console.log'],
+                            pure_funcs:
+                                process.custom['remove-functions'] === true ||
+                                process.custom['rf'] === true
+                                    ? config.removeFunctions
+                                    : [],
                         },
                     },
+                    // exclude: filePattern,
                 }),
             ],
         },
@@ -59,23 +86,10 @@ export const production = (process) => {
             new StatsWriterPlugin({ fields: null, filename: 'stats.json' }),
             new WebpackAssetsManifest(),
             new MiniCssExtractPlugin({
-                filename: 'assets/css/[name].css',
-                chunkFilename: 'assets/css/[id].css',
+                filename: 'css/[name].css',
+                chunkFilename: 'css/[id].css',
             }),
             new CssoWebpackPlugin.default(),
-            new CompressionPlugin({
-                exclude: /\.yaml/,
-            }),
-            // new BrotliPlugin({
-            //     asset: '[path].br[query]',
-            //     test: /\.(js|css|html|svg)$/,
-            //     threshold: 10240,
-            //     minRatio: 0.8
-            // }),
-            // new PurgeCssPlugin({
-            // paths: glob.sync(`${paths.src}{/**/*.htm,/**/*}`, { nodir: true }),
-            // }),
         ],
-        // devtool: 'source-map',
     };
 };
