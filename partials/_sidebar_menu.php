@@ -45,7 +45,7 @@ if ($sideMenuItems):
 ?>
     <ul class="top-level">
         <?php foreach ($categories as $category => $items):
-            $collapsed = false;
+            $collapsed = empty($_COOKIE['sidenav_tree']) ? true : in_array($category, $collapsedGroups);
             ?>
         <li data-group-code="<?= e($category); ?>"
             <?= $collapsed ? 'data-status="collapsed"' : null; ?>
@@ -92,3 +92,38 @@ if ($sideMenuItems):
     <?php endforeach; ?>
     </ul>
 <?php endif; ?>
+
+<script>
+    $(document).ready(function () {
+        /**
+         * Add click-listener to the li elements with the data-group-code attribute
+         * and write cookie accordingly
+         */
+        $('li[data-group-code]').each(function () {
+            $(this).on('click', function (e) {
+                console.log('click');
+
+                if ($(e.target).is('a')) {
+                    return;
+                }
+
+                let groupCode = $(this).data('group-code');
+                let collapsedGroups = $('li[data-group-code][data-status="collapsed"]').map(function () {
+                    return $(this).data('group-code');
+                }).get();
+
+                if ($(this).attr('data-status') === 'collapsed') {
+                    // $(this).removeAttr('data-status');
+                    collapsedGroups = collapsedGroups.filter(function (code) {
+                        return code !== groupCode;
+                    });
+                } else {
+                    // $(this).attr('data-status', 'collapsed');
+                    collapsedGroups.push(groupCode);
+                }
+
+                document.cookie = 'sidenav_tree=' + collapsedGroups.join('|') + '; path=/';
+            });
+        });
+    });
+</script>
