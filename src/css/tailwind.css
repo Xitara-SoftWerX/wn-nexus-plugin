@@ -1,0 +1,30 @@
+/*
+ * Tailwind stays in plain CSS because Tailwind 4 is not designed to run through Sass.
+ * Bootstrap Reboot is the only reset, so Tailwind Preflight is intentionally omitted.
+ */
+@layer theme, base, bootstrap, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme) prefix(tw);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none) prefix(tw);
+@source '../index.html';
+@source '../ts';
+@source '../../content';
+@source '../../layouts';
+@source '../../pages';
+@source '../../partials';
+@source '../../blocks';
+
+@theme inline {
+    --color-brand-primary: var(--brand-color-1);
+    --color-brand-secondary: var(--brand-color-2);
+    --color-brand-accent-1: var(--brand-color-3);
+    --color-brand-accent-2: var(--brand-color-4);
+}
+
+@theme {
+    --breakpoint-sm: 36rem;
+    --breakpoint-md: 48rem;
+    --breakpoint-lg: 62rem;
+    --breakpoint-xl: 75rem;
+    --breakpoint-2xl: 87.5rem;
+    --breakpoint-3xl: 100rem;
+}

@@ -1,81 +1,94 @@
 /**
- * Change configs in webpack.meta.js
- * This file merges common configuration with environment specific configuration
+ * Zentrale Webpack-Konfiguration.
+ *
+ * Webpack ruft die exportierte Funktion für jeden Build einmal auf. Hier werden
+ * die allgemeinen Einstellungen aus webpack.common.js mit den Einstellungen
+ * für den gewählten Modus (development oder production) zusammengeführt.
+ * Projektbezogene Werte und Entry-Points werden in webpack.meta.js gepflegt.
  */
 
 import { merge } from 'webpack-merge';
+
 import { config } from './webpack.meta.js';
 import { commonConfig } from './webpack/webpack.common.js';
-import { production } from './webpack/webpack.production.js';
 import { development } from './webpack/webpack.development.js';
+import { resolveEntryPoints } from './webpack/entrypoints.js';
+import { production } from './webpack/webpack.production.js';
 
 /**
- * Define configuration
- * @param {Object} env
- * @param {Object} argv
- * @returns {Object}
- * @see https://webpack.js.org/configuration/configuration-types/
+ * Zuordnung des CLI-Parameters --mode zur passenden Teilkonfiguration.
+ * Dadurch kann unten gezielt geprüft werden, ob ein unterstützter Modus gewählt wurde.
  */
-export default (env, argv) => {
+const environmentConfigs = { development, production };
+
+/**
+ * Erstellt die endgültige Webpack-Konfiguration.
+ *
+ * @param {Record<string, unknown>} env Werte aus --env, zum Beispiel --env analyze=true
+ * @param {{ mode?: string }} argv Allgemeine Argumente der Webpack-CLI
+ * @returns {object} Zusammengeführte Webpack-Konfiguration
+ */
+export default (env = {}, argv = {}) => {
+    const mode = argv.mode;
+
     /**
-     * Check if mode is set
+     * Ohne einen bekannten Modus wäre nicht eindeutig, welche Optimierungen,
+     * Source Maps und zusätzlichen Entry-Points verwendet werden sollen.
      */
-    if (!argv.mode) {
-        throw new Error('You must pass an --mode flag into your build for webpack to work!');
+    if (!environmentConfigs[mode]) {
+        throw new Error('Pass either --mode development or --mode production.');
     }
 
     /**
-     * Add additional entrypoints in development mode
+     * Webpack ergänzt selbst interne WEBPACK_*-Variablen. Nur die ausdrücklich
+     * vom Projekt übergebenen Werte werden an unsere Teilkonfigurationen gereicht.
+     * Das ursprüngliche env-Objekt wird dabei nicht verändert.
      */
-    config.entrypoints = {
+    const customEnv = Object.fromEntries(
+        Object.entries(env).filter(([key]) => !key.startsWith('WEBPACK_'))
+    );
+
+    /**
+     * Reguläre Entry-Points werden immer gebaut. entrypointsDev wird ausschließlich
+     * im Development-Modus ergänzt, damit Debug-Code nicht im Produktionspaket landet.
+     */
+    const configuredEntryPoints = {
         ...config.entrypoints,
-        ...config.entrypointsDev,
+        ...(mode === 'development' ? config.entrypointsDev : {}),
     };
 
     /**
-     *  Remove all console.xxx methods
+     * Eigene Entry-Objekte mit entry, versionFile und versioned werden hier in
+     * native Webpack-Entries sowie eine Zuordnung der ermittelten Versionen aufgeteilt.
      */
-    config.removeFunctions += config.removeConsoleMethods.map((method) => `console.${method}`);
+    const { entries: entrypoints, entryVersions } = resolveEntryPoints(configuredEntryPoints, {
+        sourceDir: config.sourceDir,
+    });
 
     /**
-     * Convert to array if it is a string
+     * Terser kann diese Funktionsaufrufe bei Bedarf aus dem Produktionsbuild entfernen.
+     * Die Liste enthält eigene Funktionen sowie die in webpack.meta.js ausgewählten
+     * console-Methoden. Aktiviert wird das Entfernen mit --env removeFunctions=true
+     * beziehungsweise kurz mit --env rf=true.
      */
-    if (typeof config.removeFunctions === 'string') {
-        config.removeFunctions = config.removeFunctions.split(',');
-    }
+    const removeFunctions = [
+        ...config.removeFunctions,
+        ...config.removeConsoleMethods.map((method) => `console.${method}`),
+    ];
 
     /**
-     * Define configuration for different environments
+     * Statt das importierte config-Objekt zu verändern, wird für diesen Build eine
+     * neue Konfiguration erzeugt. Das ist insbesondere bei Watch-Builds wichtig.
      */
-    const configs = {
-        production: production,
-        development: development,
-    };
+    const resolvedConfig = { ...config, entrypoints, entryVersions, removeFunctions };
+    const build = { mode, env: customEnv };
 
     /**
-     * Remove all entries from argv.env that key includes WEBPACK_
+     * commonConfig enthält Loader, Plugins, Pfade und alle gemeinsamen Regeln.
+     * Die zweite Konfiguration ergänzt nur die Einstellungen des gewählten Modus.
      */
-    if (argv.env && typeof argv.env === 'object') {
-        Object.keys(argv.env).forEach((key) => {
-            if (key.includes('WEBPACK_')) {
-                delete argv.env[key];
-            }
-        });
-    }
-
-    /**
-     *
-     */
-    process.custom = argv.env;
-    process.env.NODE_ENV = argv.mode;
-
-    /**
-     * Merge common configuration with environment specific configuration
-     */
-    const envConfig = configs[argv.mode](config);
-
-    /**
-     * Merge common configuration with environment specific configuration
-     */
-    return merge(commonConfig(config, process), envConfig);
+    return merge(
+        commonConfig(resolvedConfig, build),
+        environmentConfigs[mode](resolvedConfig, build)
+    );
 };

@@ -1,20 +1,19 @@
-// Variables
-@import 'base/variables';
+@use 'sass:meta';
 
-// Breakpoints
-@import 'base/breakpoints';
+/*
+ * Keep the cascade order identical to the separate Tailwind entrypoint.
+ * Bootstrap owns the reset; Tailwind Preflight is intentionally disabled.
+ */
+@layer theme, base, bootstrap, components, utilities;
 
-// Mixins
-@import 'base/mixins';
+@layer bootstrap {
+    @include meta.load-css('abstracts/bootstrap');
+}
 
-// Fonts
-@import 'base/fonts';
-
-/* Body */
-@import 'partials/body';
-
-/* Header */
-@import 'partials/header';
-
-/* Footer */
-@import 'partials/footer';
+/* Optional project modules */
+// @layer components { @include meta.load-css('partials/body'); }
+// @layer components { @include meta.load-css('partials/froala'); }
+// @layer components { @include meta.load-css('partials/glightbox'); }
+// @layer components { @include meta.load-css('partials/simplebar'); }
+// @layer components { @include meta.load-css('partials/slider'); }
+// @layer components { @include meta.load-css('abstracts/fonts'); }

@@ -1,0 +1,50 @@
+@use 'sass:color';
+
+$brand-color-1: #fff;
+$brand-color-2: #000;
+$brand-color-3: #ccc;
+$brand-color-4: #444;
+$text-color-1: $brand-color-1;
+$text-color-2: $brand-color-2;
+$text-color-3: $brand-color-3;
+$text-color-4: $brand-color-4;
+$link-color-1: $brand-color-1;
+$link-color-2: $brand-color-2;
+$link-color-3: $brand-color-3;
+$link-color-4: $brand-color-4;
+$bg-color-1: $brand-color-1;
+$bg-color-2: $brand-color-2;
+$bg-color-3: $brand-color-3;
+$bg-color-4: $brand-color-4;
+$scroll-to-top-color: $text-color-2;
+$scroll-to-top-bg: $bg-color-1;
+$scroll-to-top-border: 1px solid $brand-color-2;
+$nav-text-color: $text-color-2;
+$nav-text-hover: $text-color-1;
+$nav-text-active: $text-color-1;
+$nav-bg-color: $bg-color-1;
+$nav-bg-hover: $bg-color-2;
+$nav-bg-active: $bg-color-2;
+$burger-text-color: $text-color-2;
+$burger-text-hover: $text-color-1;
+$burger-text-active: #f00;
+$burger-bg-color: $bg-color-1;
+$burger-bg-hover: $bg-color-2;
+$burger-bg-active: $bg-color-2;
+
+/* Bootstrap overrides: readable dark text on the light default background. */
+$body-color: $text-color-2;
+$body-bg: $bg-color-1;
+$link-color: $link-color-2;
+
+/* Shared runtime tokens used by both the Sass and Tailwind stylesheets. */
+:root {
+    --brand-color-1: #{$brand-color-1};
+    --brand-color-2: #{$brand-color-2};
+    --brand-color-3: #{$brand-color-3};
+    --brand-color-4: #{$brand-color-4};
+    --brand-color-2-rgb:
+        #{color.channel($brand-color-2, 'red', $space: rgb)},
+        #{color.channel($brand-color-2, 'green', $space: rgb)},
+        #{color.channel($brand-color-2, 'blue', $space: rgb)};
+}

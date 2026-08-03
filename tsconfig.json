@@ -1,14 +1,19 @@
 {
     "compilerOptions": {
-        "outDir": "./dist/",
-        "noImplicitAny": true,
-        "module": "esnext",
-        "target": "es2018",
-        "jsx": "react",
+        "allowImportingTsExtensions": true,
         "allowJs": true,
-        "moduleResolution": "node",
-        "sourceMap": true,
-        "lib": ["es2018", "dom", "es2015.iterable"]
+        "checkJs": false,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "rewriteRelativeImportExtensions": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "target": "ES2022",
+        "useDefineForClassFields": true
     },
-    "ts-node": { "esm": true }
+    "include": ["src/ts/**/*.ts", "src/ts/**/*.js"],
+    "exclude": ["assets", "dist", "node_modules", "vendor"]
 }

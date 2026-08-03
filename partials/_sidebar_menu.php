@@ -122,7 +122,9 @@ if ($sideMenuItems):
                     collapsedGroups.push(groupCode);
                 }
 
-                document.cookie = 'sidenav_tree=' + collapsedGroups.join('|') + '; path=/';
+                let expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + 30);
+                document.cookie = 'sidenav_tree=' + collapsedGroups.join('|') + '; path=/; expires=' + expiryDate.toUTCString();
             });
         });
     });

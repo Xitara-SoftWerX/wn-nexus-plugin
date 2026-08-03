@@ -1,45 +1,35 @@
 #!/usr/bin/env node
 
-import { exec } from 'child_process';
-import os from 'os';
+import { spawn } from 'node:child_process';
 
-if (process.argv.length < 3) {
-    console.error('Must run command with the URL you want to visit.');
+const url = process.argv[2];
+
+if (!url) {
+    console.error('Pass the URL or file you want to open.');
     process.exit(1);
 }
 
-const URL = process.argv[2];
-
-const openBrowser = (command) => {
-    exec(command, (error) => {
-        if (error) {
-            console.error(`Error: ${error.message}`);
-            return;
-        }
-        console.log(`Opening browser with URL: ${URL}`);
-    });
-};
+let command;
+let args;
 
 if (process.env.BROWSER) {
-    // Falls die Umgebungsvariable BROWSER gesetzt ist, wird sie verwendet.
-    openBrowser(`${process.env.BROWSER} ${URL}`);
+    command = process.env.BROWSER;
+    args = [url];
+} else if (process.platform === 'win32') {
+    command = 'cmd';
+    args = ['/c', 'start', '', url];
+} else if (process.platform === 'darwin') {
+    command = 'open';
+    args = [url];
 } else {
-    const platform = os.platform();
-
-    if (platform === 'win32') {
-        // Windows nutzt `start` (Wichtig: URL in doppelte Anführungszeichen setzen!)
-        openBrowser(`start "" "${URL}"`);
-    } else if (platform === 'darwin') {
-        // macOS nutzt `open`
-        openBrowser(`open "${URL}"`);
-    } else {
-        // Linux sucht nach `xdg-open` oder `gnome-open`
-        exec('which xdg-open || which gnome-open', (error, stdout) => {
-            if (stdout) {
-                openBrowser(`${stdout.trim()} "${URL}"`);
-            } else {
-                console.error("Can't find any browser");
-            }
-        });
-    }
+    command = 'xdg-open';
+    args = [url];
 }
+
+const browser = spawn(command, args, { detached: true, stdio: 'ignore' });
+
+browser.on('error', (error) => {
+    console.error(`Could not open the browser: ${error.message}`);
+    process.exitCode = 1;
+});
+browser.unref();

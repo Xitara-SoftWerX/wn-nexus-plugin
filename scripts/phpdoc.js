@@ -1,36 +1,19 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
-import os from 'os';
-import { promisify } from 'util';
-import { exec } from 'child_process';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const execPromise = promisify(exec);
+const localBinaries = ['vendor/bin/phpdoc', 'vendor/bin/phpDocumentor'];
+const localBinary = localBinaries.find((candidate) => fs.existsSync(candidate));
+const command = localBinary ? path.resolve(localBinary) : 'phpDocumentor';
+const result = spawnSync(command, [], { stdio: 'inherit' });
 
-async function getProgramPath(program) {
-    try {
-        const command = os.platform() === 'win32' ? `where ${program}` : `which ${program}`;
-        const { stdout } = await execPromise(command);
-        return stdout.trim();
-    } catch {
-        throw new Error('Programm nicht gefunden.');
-    }
+if (result.error) {
+    console.error(
+        'phpDocumentor was not found. Install it with Composer or make phpDocumentor available in PATH.'
+    );
+    process.exit(1);
 }
 
-async function runPhpDocumentor() {
-    try {
-        const fullPath = await getProgramPath('phpDocumentor.phar');
-        console.log(`Gefunden unter: ${fullPath}`);
-
-        // PHP-Prozess mit voller Ausgabe an die Bash übergeben
-        const phpProcess = spawn('php', [fullPath], { stdio: 'inherit' });
-
-        phpProcess.on('close', (code) => {
-            console.log(`phpDocumentor wurde beendet mit Code ${code}`);
-        });
-    } catch (error) {
-        console.error(error.message);
-    }
-}
-
-runPhpDocumentor();
+process.exit(result.status ?? 1);

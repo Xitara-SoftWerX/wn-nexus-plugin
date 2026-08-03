@@ -1,187 +1,155 @@
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import tailwindcss from '@tailwindcss/postcss';
+import autoprefixer from 'autoprefixer';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
-// import TailwindCSS from '@tailwindcss/postcss7-compat'; // Update import
-import fs from 'fs';
-import path from 'path';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import path from 'node:path';
+import postcssFlexbugsFixes from 'postcss-flexbugs-fixes';
+import RemoveEmptyScriptsPlugin from 'webpack-remove-empty-scripts';
 
-/**
- * Common configuration
- * @param {Object} config
- * @param {Object} process
- * @returns {Object}
- */
-export const commonConfig = (config, process) => {
-    console.log('process.custom', process.custom);
+import { createEntryFilename, isVersionedEntryAsset } from './entrypoints.js';
 
-    /**
-     * Get version from ShoplyticsDataLayerBoilerplateConfig.ts
-     */
-    // const versionFile = fs.readFileSync(
-    // path.resolve('./src/ts/dataLayer-builder/ShoplyticsDataLayerBoilerplateConfig.ts'),
-    // 'utf8'
-    // );
-    // const match = /version\s*:\s*['"]([^'"]+)['"]/.exec(versionFile);
-    // const VERSION = match ? match[1] : 'dev';
-    const VERSION = process.custom.VERSION || 'dev';
-    const ENTRYPOINT = process.custom.ENTRYPOINT || 'none';
+const postcssOptions = (withTailwind = false) => ({
+    plugins: [...(withTailwind ? [tailwindcss()] : []), postcssFlexbugsFixes, autoprefixer],
+});
 
-    // console.log(`Building Shoplytics DataLayer Boilerplate v${VERSION}`);
-    // console.log('ENTRYPOINT', ENTRYPOINT);
-    // console.log('ENTRYPOINT', { [ENTRYPOINT]: config.entrypoints[ENTRYPOINT] });
+export const commonConfig = (config, build) => {
+    const projectRoot = process.cwd();
+    const resolveApp = (relativePath) => path.resolve(projectRoot, relativePath);
+    const isDevelopment = build.mode === 'development';
+    const entryVersions = config.entryVersions ?? {};
+    const developmentSuffix = isDevelopment ? '.debug' : '';
 
-    /**
-     * Define app directory
-     */
-    const appDirectory = fs.realpathSync(process.cwd());
-    const resolveApp = (relativePath) => path.resolve(appDirectory, relativePath);
-
-    /**
-     * Define parameters
-     */
-    const mode = process.env.NODE_ENV;
-    const lib = process.custom.lib
-        ? process.custom.lib
-        : config.library != ''
-          ? config.library
-          : undefined;
-    let entrypoint;
-
-    if (typeof config.entrypoints[ENTRYPOINT] === 'object') {
-        entrypoint = config.entrypoints[ENTRYPOINT].entry;
-    } else {
-        entrypoint = config.entrypoints[ENTRYPOINT];
-    }
-
-    /**
-     * Define common configuration
-     */
     return {
         context: resolveApp(config.sourceDir),
-        entry: { [ENTRYPOINT]: entrypoint },
+        entry: config.entrypoints,
         output: {
-            // filename: `js/[name]-${VERSION}${mode == 'development' ? '.debug' : ''}.js`,
-            filename: `js/[name]${mode == 'development' ? '.debug' : ''}.js`,
-            devtoolModuleFilenameTemplate: 'webpack://[namespace]/[resource-path]?[loaders]',
+            filename: createEntryFilename({
+                directory: 'js',
+                extension: 'js',
+                entryVersions,
+                suffix: developmentSuffix,
+            }),
             path: resolveApp(config.outputDir),
-            // Example:
-            // export const init = () => {}
-            // Call: [lib].init();
-            library: lib
+            clean: {
+                /**
+                 * Alte Dateien versionierter Entries werden bewusst behalten.
+                 * So können beispielsweise app-1.0.0.js und app-2.0.0.js
+                 * gleichzeitig im Ausgabeordner verfügbar sein.
+                 */
+                keep: (asset) => isVersionedEntryAsset(asset, entryVersions),
+            },
+            devtoolModuleFilenameTemplate: 'webpack://[namespace]/[resource-path]?[loaders]',
+            library: config.library
                 ? {
-                      name: lib,
+                      name: config.library,
                       type: 'var',
                   }
                 : undefined,
-        },
-        resolve: {
-            symlinks: false,
-            extensions: ['.js', '.jsx', '.ts', '.tsx'],
+            assetModuleFilename: 'media/[name][ext][query]',
         },
         cache: {
-            type: 'memory',
+            type: 'filesystem',
         },
-        optimization: {
-            splitChunks: {
-                cacheGroups: {
-                    styles: {
-                        name: 'styles',
-                        test: /\.css$/,
-                        chunks: 'all',
-                        enforce: true,
-                    },
-                },
+        resolve: {
+            extensions: ['.ts', '.tsx', '.js', '.jsx', '...'],
+            extensionAlias: {
+                '.js': ['.ts', '.js'],
+                '.mjs': ['.mts', '.mjs'],
+                '.cjs': ['.cts', '.cjs'],
             },
         },
         module: {
             rules: [
                 {
-                    test: /\.js$/,
+                    test: /\.m?js$/,
                     exclude: /node_modules/,
-                    loader: 'babel-loader',
+                    use: 'babel-loader',
                 },
                 {
-                    test: /\.ts?$/,
+                    test: /\.tsx?$/,
                     exclude: /node_modules/,
                     use: 'ts-loader',
                 },
                 {
-                    test: /\.(sa|sc|c)ss$/,
+                    test: /\.s[ac]ss$/i,
                     use: [
                         MiniCssExtractPlugin.loader,
                         {
                             loader: 'css-loader',
-                            options: {
-                                importLoaders: 2,
-                                url: false,
-                                sourceMap: true,
-                            },
+                            options: { importLoaders: 2, sourceMap: isDevelopment },
                         },
                         {
                             loader: 'postcss-loader',
                             options: {
-                                postcssOptions: {
-                                    sourceMap: true,
-                                    plugins: [
-                                        'autoprefixer',
-                                        'postcss-flexbugs-fixes',
-                                        // TailwindCSS('./tailwind.config.cjs'), // Update path to .cjs file
-                                    ],
-                                    processCssUrls: false,
-                                },
+                                sourceMap: isDevelopment,
+                                postcssOptions: postcssOptions(),
                             },
                         },
                         {
                             loader: 'sass-loader',
                             options: {
-                                sourceMap: true,
+                                sourceMap: isDevelopment,
+                                sassOptions: {
+                                    loadPaths: [resolveApp('node_modules')],
+                                    quietDeps: true,
+                                    silenceDeprecations: ['import'],
+                                },
                             },
                         },
                     ],
                 },
                 {
-                    test: /\.html$/,
+                    test: /\.css$/i,
+                    use: [
+                        MiniCssExtractPlugin.loader,
+                        {
+                            loader: 'css-loader',
+                            options: { importLoaders: 1, sourceMap: isDevelopment },
+                        },
+                        {
+                            loader: 'postcss-loader',
+                            options: {
+                                sourceMap: isDevelopment,
+                                postcssOptions: postcssOptions(true),
+                            },
+                        },
+                    ],
+                },
+                {
+                    test: /\.html$/i,
                     use: 'html-loader',
                 },
                 {
-                    test: /\.(woff2?|eot|ttf|otf)$/,
-                    use: {
-                        loader: 'file-loader',
-                        options: {
-                            publicPath: 'assets/fonts',
-                            outputPath: 'assets',
-                            name: '[path][name].[ext]',
-                            esModule: false,
-                        },
-                    },
+                    test: /\.(woff2?|eot|ttf|otf)$/i,
+                    type: 'asset/resource',
+                    generator: { filename: 'fonts/[name][ext][query]' },
                 },
                 {
-                    test: /\.(gif|ico|jpe?g|png|svg|webp)$/,
-                    use: {
-                        loader: 'file-loader',
-                        options: {
-                            publicPath: 'assets/images',
-                            outputPath: 'assets',
-                            name: '[path][name].[ext]',
-                            esModule: false,
-                        },
-                    },
+                    test: /\.(gif|ico|jpe?g|png|svg|webp)$/i,
+                    type: 'asset/resource',
+                    generator: { filename: 'images/[name][ext][query]' },
                 },
             ],
         },
         plugins: [
+            new RemoveEmptyScriptsPlugin(),
             new MiniCssExtractPlugin({
-                filename: 'css/[name].css',
+                filename: createEntryFilename({
+                    directory: 'css',
+                    extension: 'css',
+                    entryVersions,
+                }),
                 chunkFilename: 'css/[name].[id].css',
             }),
+            new HtmlWebpackPlugin({ template: 'index.html' }),
             new CopyWebpackPlugin({
                 patterns: [
                     {
                         from: resolveApp(config.staticDir),
-                        to: resolveApp(config.outputDir + '/../'),
-                        // noErrorOnMissing: true,
+                        to: resolveApp('.'),
                         globOptions: {
                             dot: true,
-                            gitignore: false,
                             ignore: ['**/README.md'],
                         },
                     },

@@ -1,0 +1,3 @@
+export default {
+    version: '2.4.6-beta.1',
+};

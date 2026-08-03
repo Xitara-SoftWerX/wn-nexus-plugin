@@ -1,60 +1,68 @@
-import { version } from 'os';
-
 /**
- * Define configuration
- * @param {Object} env
- * @param {Object} argv
- * @returns {Object}
- * @see https://webpack.js.org/configuration/configuration-types/
+ * Projektbezogene Webpack-Einstellungen.
+ *
+ * In dieser Datei werden bewusst nur Werte gepflegt, die sich von Projekt zu
+ * Projekt ändern können. Loader, Plugins und Optimierungen liegen in webpack/.
  */
 export const config = {
     /**
-     * entry: Relative to src directory - Entrypoint file
-     * versionFile: Relative to entry directory - File to get version from
-     * @type {Object}
+     * Entry-Points für jeden Build.
+     *
+     * Die Pfade sind relativ zu sourceDir. Der jeweilige Schlüssel bestimmt den
+     * Namen der erzeugten Datei, zum Beispiel app -> assets/js/app.js und
+     * styles -> assets/css/styles.css. Reine Stylesheet-Entries erzeugen dank
+     * webpack-remove-empty-scripts keine zusätzlichen leeren JavaScript-Dateien.
+     *
+     * Ein versionierter Entry kann weiterhin als Objekt angegeben werden:
+     *
+     * versionedApp: {
+     *     entry: './ts/app.ts',
+     *     versionFile: 'config.ts', // relativ zum Ordner der Entry-Datei
+     *     versioned: true,
+     * }
+     *
+     * Daraus wird beispielsweise assets/js/versionedApp-1.2.3.js. Für alte
+     * Konfigurationen genügt weiterhin { entry, versionFile }; versioned: true
+     * macht die gewünschte Versionierung lediglich ausdrücklich sichtbar.
      */
     entrypoints: {
-        // app: './ts/app.ts',
         app: './js/app.js',
-        pwa: './js/pwa.js',
-        sw: './js/sw.js',
-        backend: './js/backend.js',
-        // print: `./scss/print.scss`,
-        // breakpoints: `./scss/breakpoints.scss`,
+        // app: './ts/app.ts',
+        // styles: './scss/styles.scss',
+        // tailwind: './css/tailwind.css',
+        // breakpoints: './scss/breakpoints.scss',
     },
 
     /**
-     * Add additional entrypoints in development mode
-     * @type {Object}
+     * Zusätzliche Entry-Points nur für --mode development.
+     * Hier können weitere Diagnose- oder Vorschau-Dateien ergänzt werden.
      */
     entrypointsDev: {
-        // app1: './ts/app1.ts',
-        // icon_list: `./scss/icon_list.scss`,
+        debug: './ts/debug.ts',
+        // componentPreview: './ts/component-preview.ts',
     },
 
     /**
-     * Define library name
-     * can b e overwritten by --lib FooBar
-     * leave empty to disable
-     * @type {string}
+     * Optionaler globaler Bibliotheksname für JavaScript-Ausgaben.
+     * Ein leerer Wert deaktiviert den globalen Library-Export.
      */
     library: '',
 
     /**
-     * Define functions to keep unchanged in terser plugin
-     * @type {Array}
+     * Funktionsnamen, die Terser beim Verkürzen niemals umbenennen darf.
+     * Das ist relevant, wenn diese Funktionen von außen über ihren Namen aufgerufen werden.
      */
     reserveFunctions: ['app'],
 
     /**
-     * Define functions to remove in terser plugin
-     * @type {Array}
+     * Zusätzliche Funktionsaufrufe, die bei aktiviertem removeFunctions-Schalter
+     * vollständig aus dem Produktionsbuild entfernt werden dürfen.
      */
     removeFunctions: [],
 
     /**
-     * Define console methods to remove
-     * @type {Array}
+     * console-Methoden, die der removeFunctions-Liste automatisch hinzugefügt werden.
+     * console.error bleibt absichtlich erhalten, damit echte Laufzeitfehler sichtbar sind.
      */
     removeConsoleMethods: [
         'assert',
@@ -64,7 +72,7 @@ export const config = {
         'debug',
         'dir',
         'dirxml',
-        // "error",
+        // 'error',
         'group',
         'groupCollapsed',
         'groupEnd',
@@ -81,21 +89,12 @@ export const config = {
         'warn',
     ],
 
-    /**
-     * Define source directory
-     * @type {string}
-     */
+    /** Quellordner; zugleich Webpacks context für alle relativen Entry-Pfade. */
     sourceDir: 'src',
 
-    /**
-     * Define directory with static files
-     * @type {string}
-     */
+    /** Statische Dateien, die unverändert neben die Build-Ausgabe kopiert werden. */
     staticDir: 'static',
 
-    /**
-     * Define output directory
-     * @type {string}
-     */
+    /** Zielordner für erzeugte JavaScript-, CSS-, Bild- und Manifest-Dateien. */
     outputDir: 'assets',
 };

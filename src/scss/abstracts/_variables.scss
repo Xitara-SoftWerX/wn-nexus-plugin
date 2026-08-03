@@ -1,0 +1,49 @@
+$font-1: arial;
+$font-2: orbitron;
+$font-3: 'Exo 2';
+$font-4: michroma;
+$font-5: revalia;
+$font-6: 'Seven Segment Regular';
+$font-7: vt323;
+$default-gap: 2rem;
+$nav-height: 5rem;
+$burger-top: 2rem;
+$burger-right: 2rem;
+$burger-width: 5rem;
+$burger-height: 2rem;
+$container-max-widths: (
+    sm: 540px,
+    md: 760px,
+    lg: 960px,
+    xl: 1140px,
+    xxl: 1320px,
+    3xl: 1530px,
+);
+$grid-breakpoints: (
+    xs: 0,
+    sm: 576px,
+    md: 768px,
+    lg: 992px,
+    xl: 1200px,
+    xxl: 1400px,
+    3xl: 1600px,
+);
+$font-sans-serif:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    roboto,
+    'Helvetica Neue',
+    arial,
+    'Noto Sans',
+    'Liberation Sans',
+    sans-serif,
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji';
+$body-font-family: $font-1, $font-2, $font-3, $font-4, $font-sans-serif;
+$body-font-size: 1rem;
+$body-font-weight: 400;
+$body-line-height: 1.5;
+$body-text-align: left;

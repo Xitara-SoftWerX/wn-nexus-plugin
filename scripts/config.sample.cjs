@@ -1,17 +1,11 @@
 #!/usr/bin/env node
 
-/* global
-    require,
-    __dirname,
-    module,
-*/
-
 // config.js
 
 const fs = require('fs');
 const path = require('path');
 
-const packageJsonPath = path.join(__dirname, 'package.json');
+const packageJsonPath = path.join(__dirname, '../package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 const STORAGE = [
@@ -32,7 +26,6 @@ const STORAGE = [
     'reportwidgets',
     'traits',
     'updates',
-    'vendor',
     'views',
     '*manifest.json*',
     'content',
@@ -43,6 +36,8 @@ const STORAGE = [
     'robots.txt',
     'theme.yaml',
     'version.yaml',
+    'composer.json',
+    'composer.lock',
 ];
 
 const FILE = packageJson.name;
@@ -50,12 +45,20 @@ const VERSION = packageJson.version;
 
 const TARGET = path.resolve(__dirname, '..');
 
-const ftp = {
-    host: '',
+const UPLOAD_TYPE = 'files'; // files, archive, both
+
+const UPLOAD = {
+    protocol: 'scp', // ftp, sftp, scp, ftps
+    host: 'hive',
     port: '',
     user: '',
     pass: '',
-    path: '',
+    key: '~/.ssh/id_rsa',
+    path: '/opt/docker_volumes/nexus.xitara.net/plugins/xitara',
+    rename: /^wn-(.+?)-plugin_/,
+    backupExisting: '/opt/docker_volumes/nexus.xitara.net/old_plugins/xitara',
+    chown: '10000:10000',
+    postRun: '/opt/docker_volumes/nexus.xitara.net/clearCache.sh',
 };
 
 module.exports = {
@@ -63,5 +66,6 @@ module.exports = {
     FILE,
     VERSION,
     TARGET,
-    ftp,
+    UPLOAD_TYPE,
+    UPLOAD,
 };
