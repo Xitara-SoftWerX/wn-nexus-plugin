@@ -1,35 +1,35 @@
 # Xitara Nexus Plugin [![Known Vulnerabilities](https://snyk.io/test/github/xitara/wn-nexus-plugin/badge.svg)](https://snyk.io//test/github/xitara/wn-nexus-plugin)
 
-Implements backend sidemenu, custom menus, menu sorting
+Provides a shared backend side navigation, custom menus, and centralized menu sorting.
 
 ## Getting started
 
-- clone the repo to folder `plugins/xitara/nexus`
-- cd to `plugins/xitara/nexus`
-- run `yarn` to fetch all the dependencies
+- Clone the repository into `plugins/xitara/nexus`.
+- Change to the `plugins/xitara/nexus` directory.
+- Run `yarn` to install all dependencies.
 
 ## Commands
 
-- `start` - start the dev server
-- `cleanup` - remove compiled data, node_modules, vendor, etc. don't delete any sources
-- `watch` - start webpack --watch
-- `dwatch` - start webpack --watch --mode development
-- `build` - build the complete app including copying static content
-- `dbuild` - build the complete app including copying static content with --mode development
-- `zip` - zips a package with only needed files without overhead
-- `deploy` - deploys a package with only needed files without overhead in a folder without zipping
-- `ftp` - uploads a minimizes package to a configured server (needs lftp)
-- `analyze` - analyze your production bundle
-- `lint-code` - run an ESLint check
-- `lint-style` - run a Stylelint check
-- `check-eslint-config` - check if ESLint config contains any rules that are unnecessary or conflict with Prettier
-- `check-stylelint-config` - check if Stylelint config contains any rules that are unnecessary or conflict with Prettier
+- `start` - Start the development server.
+- `cleanup` - Remove generated files, `node_modules`, `vendor`, and other build data without deleting source files.
+- `watch` - Start Webpack in watch mode.
+- `dwatch` - Start Webpack in development watch mode.
+- `build` - Build the complete application and copy static content.
+- `dbuild` - Build the complete application in development mode and copy static content.
+- `zip` - Create a minimal distribution archive containing only required files.
+- `deploy` - Create an unpacked minimal distribution in a target directory.
+- `ftp` - Upload a minimized package to a configured server; requires `lftp`.
+- `analyze` - Analyze the production bundle.
+- `lint-code` - Run ESLint.
+- `lint-style` - Run Stylelint.
+- `check-eslint-config` - Check the ESLint configuration for unnecessary rules or conflicts with Prettier.
+- `check-stylelint-config` - Check the Stylelint configuration for unnecessary rules or conflicts with Prettier.
 
-## Plugins in die gemeinsame Seitennavigation aufnehmen
+## Add plugins to the shared side navigation
 
-Nexus verwendet die von Winter bereitgestellte `registerNavigation()`-Definition als Quelle. Ein Plugin benötigt deshalb weder einen Nexus-spezifischen Boot-Hook noch ein eigenes Sidebar-Partial. Verfügbare Hauptmenüs können im Backend unter **Einstellungen → Seitennavigation** aktiviert und per Drag-and-drop sortiert werden.
+Nexus uses Winter's native `registerNavigation()` definition as its source. A plugin therefore needs neither a Nexus-specific boot hook nor a custom sidebar partial. Available main navigation items can be enabled and sorted by drag-and-drop under **Settings → Side navigation** in the backend.
 
-### Navigation im Plugin registrieren
+### Register navigation in a plugin
 
 ```php
 public function registerNavigation()
@@ -55,11 +55,11 @@ public function registerNavigation()
 }
 ```
 
-Nach dem Aktivieren übernimmt Nexus die Side-Menu-Einträge, blendet das zugehörige Hauptmenü aus und ordnet den bisherigen Backend-Kontext der gemeinsamen Navigation zu. Hat ein Hauptmenü kein `sideMenu`, wird es als einzelner Eintrag übernommen.
+After activation, Nexus adds the side menu items to the shared navigation, hides the corresponding main navigation item, and maps the plugin's existing backend context to the shared navigation. If a main navigation item has no `sideMenu`, Nexus adds it as a single side navigation item.
 
-### Backend-Kontext im Controller
+### Set the backend context in a controller
 
-Der Controller verwendet weiterhin unverändert den nativen Kontext seines Plugins:
+The controller continues to use its plugin's native context without any Nexus-specific changes:
 
 ```php
 public function __construct()
@@ -73,42 +73,45 @@ public function __construct()
 }
 ```
 
-Nexus erkennt außerdem ältere Varianten wie `nexus.[CONTROLLER_SLUG]`, damit bestehende Controller schrittweise migriert werden können.
+> [!WARNING]
+> Context values such as `nexus.[CONTROLLER_SLUG]` are deprecated. They are recognized only to support existing controllers during migration.
 
-### Zusätzliche Darstellungsattribute
+### Additional presentation attributes
 
-Optionale `attributes` eines nativen Side-Menu-Eintrags bleiben erhalten. Die Nexus-Seitennavigation unterstützt insbesondere:
+Optional `attributes` on native side menu items are preserved. The Nexus side navigation specifically supports:
 
-- `description`: zweite Textzeile
-- `keywords`: zusätzliche Suchbegriffe
-- `target`: zum Beispiel `_blank`
-- `level`: optische Einrückung (`1` bis `3`)
-- `line`: Trennlinie (`top`, `right`, `bottom` oder `left`)
-- `bold`: hervorgehobene Beschriftung
+- `description`: A secondary line of text.
+- `keywords`: Additional search terms.
+- `target`: A link target such as `_blank`.
+- `level`: Visual indentation from `1` to `3`.
+- `line`: A separator on `top`, `right`, `bottom`, or `left`.
+- `bold`: An emphasized label.
 
-### Übergang von `injectSideMenu()`
+### Deprecated compatibility API
 
-Die bisherige Methode `public static function injectSideMenu()` und `Xitara\Nexus\Plugin::getSideMenu()` werden vorerst aus Kompatibilitätsgründen unterstützt. Für neue Plugins sollte ausschließlich `registerNavigation()` verwendet werden. Die Zusätze `::hidden`, eigene Nexus-Sidebar-Partials und Reflection-Hooks in `backend.page.beforeDisplay` sind nicht mehr erforderlich.
+> [!WARNING]
+> `public static function injectSideMenu()`, `Xitara\Nexus\Plugin::getSideMenu()`, `::hidden` label suffixes, custom Nexus sidebar partials, and Reflection hooks in `backend.page.beforeDisplay` are deprecated. They remain available only for backward compatibility. New integrations must use `registerNavigation()`.
 
-Ein bestehendes Plugin kann schrittweise migriert werden:
+Migrate an existing plugin as follows:
 
-1. Die Einträge aus `injectSideMenu()` nach `registerNavigation()['…']['sideMenu']` verschieben.
-2. Im Controller wieder den nativen Plugin-Kontext setzen.
-3. Nexus-spezifische Boot-Hooks und `::hidden` entfernen.
-4. Den Menübereich in **Einstellungen → Seitennavigation** aktivieren und einsortieren.
+1. Move the entries from `injectSideMenu()` to `registerNavigation()['…']['sideMenu']`.
+2. Restore the plugin's native context in its controllers.
+3. Remove Nexus-specific boot hooks and `::hidden` suffixes.
+4. Enable and position the navigation group under **Settings → Side navigation**.
 
-## Benutzerdefinierte Menügruppen
+## Custom menu groups
 
-Die im Nexus-Backend gepflegten benutzerdefinierten Menüs bleiben verfügbar. Sie erscheinen gemeinsam mit den nativen Plugin-Menüs in der zentralen Auswahl und Sortierung.
+Custom menus managed in the Nexus backend remain available. They appear alongside native plugin menus in the centralized selection and sorting interface.
 
-## Übersetzungen
+## Translations
 
-- `[VENDOR_SLUG].[PLUGIN_SLUG]::lang.plugin.name` bezeichnet die Gruppenüberschrift.
-- `[VENDOR_SLUG].[PLUGIN_SLUG]::lang.submenu.[CONTROLLER]` bezeichnet einen Menüeintrag.
+- `[VENDOR_SLUG].[PLUGIN_SLUG]::lang.plugin.name` defines the group heading.
+- `[VENDOR_SLUG].[PLUGIN_SLUG]::lang.submenu.[CONTROLLER]` defines a navigation item.
 
-## Legacy-Beispiel: Kontext
+## Deprecated context example
 
-Dieser Kontext wird weiterhin erkannt, sollte bei einer Modernisierung aber durch den nativen Kontext aus dem Beispiel oben ersetzt werden:
+> [!CAUTION]
+> The following context format is deprecated. It remains recognized for backward compatibility and must be replaced with the native context shown above.
 
 ```php
 public function __construct()
@@ -119,14 +122,16 @@ public function __construct()
 ```
 
 ## Register backend settings
-### You must implement your own settings model in your plugin
 
-Register settings to Nexus category
+### Implement a settings model in your plugin
+
+Register the settings page in the Nexus category:
+
 ```php
 public function registerSettings()
 {
     $category = '[VENDOR_SLUG].[PLUGIN_SLUG]::lang.settings.label';
-    
+
     if (PluginManager::instance()->exists('Xitara.Nexus') === true) {
         if (($category = \Xitara\Nexus\Models\Settings::get('menu_text')) == '') {
             $category = 'xitara.nexus::core.settings.name';
