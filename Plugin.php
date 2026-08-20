@@ -7,9 +7,9 @@ use Backend\Controllers\Users;
 use Backend\Models\Preference;
 use Backend\Models\User;
 use Backend\Models\UserRole;
-use Log;
 use System\Classes\PluginBase;
-use System\Classes\PluginManager;
+use Xitara\Nexus\Classes\BackendMenuAggregator;
+use Xitara\Nexus\Classes\BackendMenuRegistry;
 use Xitara\Nexus\Models\CustomMenu;
 use Xitara\Nexus\Models\Menu;
 use Xitara\Nexus\Models\Settings as NexusSettings;
@@ -77,17 +77,17 @@ class Plugin extends PluginBase
         // });
         // });
 
-        /*
-         * set new backend-skin
-         */
-        \Config::set('cms.backendSkin', 'Xitara\Nexus\Classes\BackendSkin');
-
-        /*
-         * add items to sidemenu
-         */
-        $this->getSideMenu('Xitara.Nexus', 'nexus');
+        $menuAggregator = new BackendMenuAggregator();
+        \Event::listen('backend.menu.extendItems', function ($navigationManager) use ($menuAggregator) {
+            $menuAggregator->extend($navigationManager);
+        });
 
         \Event::listen('backend.page.beforeDisplay', function ($controller, $action, $params) {
+            // Controllers set their context at different points in the request.
+            // Remap it once more immediately before the layout is rendered.
+            \BackendMenu::listMainMenuItems();
+            BackendMenuRegistry::remapCurrentContext();
+
             if (NexusSettings::get('is_compact_display')) {
                 $controller->addCss(\Config::get('cms.pluginsPath').'/xitara/nexus/assets/css/compact.css');
             }
@@ -220,6 +220,15 @@ class Plugin extends PluginBase
                 'order' => 0,
                 'permissions' => ['xitara.nexus.settings'],
             ],
+            'menu_configuration' => [
+                'category' => $category,
+                'label' => 'xitara.nexus::lang.menu_configuration.label',
+                'description' => 'xitara.nexus::lang.menu_configuration.description',
+                'icon' => 'icon-bars',
+                'url' => \Backend::url('xitara/nexus/menu/reorder'),
+                'order' => 10,
+                'permissions' => ['xitara.nexus.menu'],
+            ],
         ];
     }
 
@@ -295,6 +304,7 @@ class Plugin extends PluginBase
                 'iconSvg' => $iconSvg,
                 'permissions' => ['xitara.nexus.*'],
                 'order' => 50,
+                'sideMenu' => static::baseSideMenuItems(),
             ],
         ];
     }
@@ -345,18 +355,26 @@ class Plugin extends PluginBase
      */
     public static function getSideMenu(string $owner, string $code)
     {
-        // Log::debug(NexusSettings::get('menu_text'));
+        /*
+         * Backwards compatibility for plugins that still contribute their own
+         * injectSideMenu() definitions. New plugins should use registerNavigation().
+         */
+        \Event::listen('backend.menu.extendItems', function ($manager) use ($owner, $code) {
+            (new BackendMenuAggregator())->addLegacyPluginItems($manager, $owner, $code);
+        });
+    }
+
+    protected static function baseSideMenuItems(): array
+    {
         if (($group = NexusSettings::get('menu_text')) == '') {
             $group = 'xitara.nexus::lang.submenu.label';
         }
-        // Log::debug($group);
-        $i = 0;
-        $items = [
+
+        return [
             'nexus.dashboard' => [
                 'label' => 'xitara.nexus::lang.nexus.dashboard',
                 'url' => \Backend::url('xitara/nexus/dashboard'),
                 'icon' => 'icon-dashboard',
-                'order' => 1,
                 'permissions' => [
                     'xitara.nexus.mainmenu',
                     'xitara.nexus.dashboard',
@@ -364,61 +382,29 @@ class Plugin extends PluginBase
                 'attributes' => [
                     'group' => $group,
                 ],
-                'order' => $i++,
+                'order' => 0,
             ],
             'nexus.menu' => [
                 'label' => 'xitara.nexus::lang.nexus.menu',
                 'url' => \Backend::url('xitara/nexus/menu/reorder'),
                 'icon' => 'icon-sort',
-                'order' => 2,
                 'permissions' => ['xitara.nexus.menu'],
                 'attributes' => [
                     'group' => $group,
                 ],
-                'order' => $i++,
+                'order' => 1,
             ],
             'nexus.custommenus' => [
                 'label' => 'xitara.nexus::lang.custommenu.label',
                 'url' => \Backend::url('xitara/nexus/custommenus'),
                 'icon' => 'icon-link',
-                'order' => 3,
                 'permissions' => ['xitara.nexus.custommenus'],
                 'attributes' => [
                     'group' => $group,
                 ],
-                'order' => $i++,
+                'order' => 2,
             ],
         ];
-
-        foreach (PluginManager::instance()->getPlugins() as $name => $plugin) {
-            $namespace = str_replace('.', '\\', $name).'\Plugin';
-            // var_dump($name);
-            // var_dump(PluginManager::instance()->isDisabled($plugin));
-
-            if (method_exists($namespace, 'injectSideMenu')) {
-                $checker = new \ReflectionMethod($namespace, 'injectSideMenu');
-                // $plugin = PluginManager::instance()->findByNamespace($namespace);
-
-                // var_dump($plugin);
-                // var_dump($plugin);
-
-                // if (!$plugin->is_disabled) {
-                if ($checker->isStatic()) {
-                    $inject = $plugin::injectSideMenu();
-                } else {
-                    $inject = $plugin->injectSideMenu();
-                }
-                $items = array_merge($items, $inject);
-                // }
-            }
-        }
-
-        // Log::debug($items);
-        // var_dump($items);
-
-        \Event::listen('backend.menu.extendItems', function ($manager) use ($owner, $code, $items) {
-            $manager->addSideMenuItems($owner, $code, $items);
-        });
     }
 
     /**
@@ -429,8 +415,6 @@ class Plugin extends PluginBase
         $item = Menu::find($code);
 
         if ($item === null) {
-            Menu::create(['code' => $code, 'sort_order' => 9999]);
-
             return 9999;
         }
 
@@ -462,12 +446,9 @@ class Plugin extends PluginBase
             // Log::debug('-- ' . $custommenu->slug);
             // Log::debug('>> ' . $custommenu->namespace);
 
-            $namespace = $custommenu->slug.'.custommenulist';
-
-            if ($custommenu->namespace !== null) {
-                $namespace = str_replace('\\', '.', $custommenu->namespace);
-                $namespace = strtolower($namespace);
-            }
+            $namespace = $custommenu->namespace !== null
+                ? strtolower(str_replace('\\', '.', $custommenu->namespace))
+                : $custommenu->slug.'.custommenulist';
 
             // Log::debug('== ' . $namespace);
 
@@ -498,7 +479,7 @@ class Plugin extends PluginBase
                             'keywords' => $link['keywords'] ?? null,
                             'description' => $link['description'] ?? null,
                         ],
-                        'order' => self::getMenuOrder($namespace.'.'.$custommenu->slug) + $count++,
+                        'order' => self::getMenuOrder($custommenu->getNexusGroupCode()) + $count++,
                     ];
                 }
             }

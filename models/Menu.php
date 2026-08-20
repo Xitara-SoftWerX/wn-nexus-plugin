@@ -8,8 +8,13 @@ use Model;
  * Menu Model
  *
  * @property string|null                                    $code
+ * @property string|null                                    $owner
+ * @property string|null                                    $main_menu_code
+ * @property string|null                                    $source_type
+ * @property bool                                           $is_enabled
  * @property string|null                                    $name
  * @property int|null                                       $sort_order
+ * @property \Illuminate\Support\Carbon|null                $last_seen_at
  * @method static \Winter\Storm\Database\Collection<int, static> all($columns = ['*'])
  * @method static \Winter\Storm\Database\Collection<int, static> get($columns = ['*'])
  * @method static \Winter\Storm\Database\Builder|Menu            lists(string $column, string $key = null)
@@ -41,7 +46,16 @@ class Menu extends Model
     /**
      * @var array Fillable fields
      */
-    protected $fillable = ['code', 'sort_order'];
+    protected $fillable = [
+        'code',
+        'owner',
+        'main_menu_code',
+        'source_type',
+        'is_enabled',
+        'name',
+        'sort_order',
+        'last_seen_at',
+    ];
 
     /**
      * @var array Validation rules for attributes
@@ -51,7 +65,10 @@ class Menu extends Model
     /**
      * @var array Attributes to be cast to native types
      */
-    protected $casts = [];
+    protected $casts = [
+        'is_enabled' => 'boolean',
+        'sort_order' => 'integer',
+    ];
 
     /**
      * @var array Attributes to be cast to JSON
@@ -71,7 +88,7 @@ class Menu extends Model
     /**
      * @var array Attributes to be cast to Argon (Carbon) instances
      */
-    protected $dates = [];
+    protected $dates = ['last_seen_at'];
 
     /**
      * @var array Relations
@@ -89,4 +106,25 @@ class Menu extends Model
     protected $primaryKey = 'code';
     public $timestamps = false;
     public $incrementing = false;
+
+    /**
+     * Build a compact, stable key that fits the legacy primary key column.
+     */
+    public static function makeNavigationCode(string $owner, string $mainMenuCode): string
+    {
+        return 'nav:'.sha1(strtoupper($owner).'/'.$mainMenuCode);
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        if ($this->name !== null && $this->name !== '') {
+            return trans($this->name);
+        }
+
+        if ($this->owner && $this->main_menu_code) {
+            return $this->owner.' / '.$this->main_menu_code;
+        }
+
+        return (string) $this->code;
+    }
 }

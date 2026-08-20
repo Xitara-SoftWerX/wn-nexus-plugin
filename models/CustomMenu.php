@@ -4,6 +4,7 @@ namespace Xitara\Nexus\Models;
 
 use Model;
 use Str;
+use Xitara\Nexus\Classes\BackendMenuRegistry;
 
 /**
  * CustomMenu Model
@@ -101,24 +102,69 @@ class CustomMenu extends Model
     public $attachOne = [];
     public $attachMany = [];
 
+    /** @var string|null */
+    protected $originalNexusGroupCode;
+
     public function beforeSave()
     {
-        /**
-         * update code from xitara_nexus_menus
-         */
-        $success = Menu::where('code', 'xitara.custommenulist.' . $this->slug)
-            ->update([
-                'code' => 'xitara.custommenulist.' . Str::slug($this->name),
-                'name' => $this->name,
-            ]);
-
+        $this->originalNexusGroupCode = $this->exists
+            ? $this->makeNexusGroupCode($this->getOriginal('slug'), $this->getOriginal('namespace'))
+            : null;
         $this->slug = Str::slug($this->name);
+    }
+
+    public function afterSave()
+    {
+        if (!BackendMenuRegistry::menuTableReady()) {
+            return;
+        }
+
+        $groupCode = $this->getNexusGroupCode();
+
+        if (!$this->is_submenu) {
+            Menu::whereIn('code', array_filter([
+                $this->originalNexusGroupCode,
+                $groupCode,
+            ]))->delete();
+
+            return;
+        }
+
+        if ($this->originalNexusGroupCode && $this->originalNexusGroupCode !== $groupCode) {
+            Menu::where('code', $this->originalNexusGroupCode)->delete();
+        }
+
+        $menu = Menu::firstOrNew(['code' => $groupCode]);
+
+        if (!$menu->exists) {
+            $menu->sort_order = ((int) Menu::max('sort_order')) + 100;
+            $menu->is_enabled = true;
+        }
+
+        $menu->source_type = 'custom';
+        $menu->name = $this->name;
+        $menu->save();
     }
 
     public function beforeDelete()
     {
-        /**
-         * delete code from xitara_nexus_menus
-         */
+        if (BackendMenuRegistry::menuTableReady()) {
+            Menu::where('code', $this->getNexusGroupCode())->delete();
+        }
+    }
+
+    public function getNexusGroupCode(): string
+    {
+        return $this->makeNexusGroupCode($this->slug, $this->namespace);
+    }
+
+    protected function makeNexusGroupCode(?string $slug, ?string $namespace): string
+    {
+        $slug = $slug ?: Str::slug($this->name);
+        $namespace = $namespace
+            ? strtolower(str_replace('\\', '.', $namespace))
+            : $slug.'.custommenulist';
+
+        return $namespace.'.'.$slug;
     }
 }

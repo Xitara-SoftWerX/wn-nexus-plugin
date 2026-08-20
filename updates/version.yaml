@@ -27,3 +27,6 @@
 2.1.6:
     - 'Add namespace field to custommenus'
     - v2.1.6/add_namespace_field.php
+2.2.0:
+    - 'Modernize backend navigation aggregation and menu configuration'
+    - v2.2.0/extend_menus_table.php

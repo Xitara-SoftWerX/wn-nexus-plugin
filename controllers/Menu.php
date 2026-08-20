@@ -4,7 +4,9 @@ namespace Xitara\Nexus\Controllers;
 
 use Backend\Classes\Controller;
 use BackendMenu;
-use System\Classes\PluginManager;
+use Flash;
+use Lang;
+use Xitara\Nexus\Classes\BackendMenuRegistry;
 use Xitara\Nexus\Models\Menu as MenuModel;
 
 /**
@@ -12,6 +14,8 @@ use Xitara\Nexus\Models\Menu as MenuModel;
  */
 class Menu extends Controller
 {
+    public $requiredPermissions = ['xitara.nexus.menu'];
+
     public $implement = [
         'Backend.Behaviors.ReorderController',
     ];
@@ -22,58 +26,53 @@ class Menu extends Controller
     {
         parent::__construct();
         BackendMenu::setContext('Xitara.Nexus', 'nexus', 'nexus.menu');
-        $this->collectMenuItems();
+
+        // This fills the request-local catalog before it is persisted. Normal
+        // backend requests never write discovered navigation sources.
+        BackendMenu::listMainMenuItems();
+        BackendMenuRegistry::syncSources();
+
         $this->pageTitle = 'xitara.nexus::core.submenu.menu_order';
     }
 
-    private function collectMenuItems()
+    public function onToggleSource(): void
     {
-        foreach (PluginManager::instance()->getPlugins() as $name => $plugin) {
-            $namespace = str_replace('.', '\\', $name) . '\Plugin';
+        $menu = MenuModel::findOrFail((string) post('code'));
+        $menu->is_enabled = !$menu->is_enabled;
+        $menu->save();
 
-            if (method_exists($namespace, 'injectSideMenu')) {
-                $menu = $namespace::injectSideMenu();
+        Flash::success(Lang::get(
+            $menu->is_enabled
+                ? 'xitara.nexus::lang.menu_configuration.enabled'
+                : 'xitara.nexus::lang.menu_configuration.disabled',
+            ['name' => $menu->display_name]
+        ));
+    }
 
-                if (empty($menu)) {
-                    continue;
-                }
+    public function onRefreshSources()
+    {
+        BackendMenuRegistry::syncSources();
+        Flash::success(Lang::get('xitara.nexus::lang.menu_configuration.refreshed'));
 
-                $item = array_shift($menu);
+        return \Redirect::refresh();
+    }
 
-                if (isset($item['attributes']['no_reorder']) &&
-                    $item['attributes']['no_reorder'] == true) {
-                    continue;
-                }
+    public function reorderExtendQuery($query): void
+    {
+        $navigationSources = BackendMenuRegistry::sources();
+        $customMenuCodes = BackendMenuRegistry::customMenuCodes();
 
-                $group = $item['group'] ?? $item['attributes']['group'] ?? null;
-
-                if ($group === null) {
-                    continue;
-                }
-
-                $code = explode('::', $group);
-                $code = $code[0];
-                $model = MenuModel::find($code);
-
-                if ($model !== null) {
-                    continue;
-                }
-
-                $model = new MenuModel();
-                $model->code = $code;
-                $model->sort_order = 9999;
-                $model->save();
+        $query->where(function ($query) use ($navigationSources, $customMenuCodes) {
+            foreach ($navigationSources as $source) {
+                $query->orWhere(function ($query) use ($source) {
+                    $query->where('owner', $source['owner'])
+                        ->where('main_menu_code', $source['main_menu_code']);
+                });
             }
-        }
 
-        /**
-         * resort sort_order
-         */
-        $i = 100;
-        foreach (MenuModel::orderBy('sort_order', 'asc')->get() as $model) {
-            $model->sort_order = $i;
-            $model->save();
-            $i += 100;
-        }
+            if ($customMenuCodes !== []) {
+                $query->orWhereIn('code', $customMenuCodes);
+            }
+        });
     }
 }

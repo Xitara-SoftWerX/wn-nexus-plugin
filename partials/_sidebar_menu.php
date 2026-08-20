@@ -1,131 +1,119 @@
-<!-- Sidebar menu -->
 <?php
     $sideMenuItems = BackendMenu::listSideMenuItems();
-
-if ($sideMenuItems):
-    $collapsedGroups = explode('|', isset($_COOKIE['sidenav_tree']) ? $_COOKIE['sidenav_tree'] : null);
-
+    $collapsedGroups = explode('|', $_COOKIE['nexus_sidenav_groupStatus'] ?? '');
     $categories = [];
+
     foreach ($sideMenuItems as $sideItemCode => $item) {
-        if (isset($item->attributes['group'])) {
-            $item->group = e(trans($item->attributes['group']));
+        $attributes = $item->attributes ?? [];
+        $groupCode = (string) ($attributes['nexusGroupCode'] ?? $attributes['group'] ?? 'nexus');
+        $groupLabel = (string) (
+            $attributes['nexusGroupLabel']
+            ?? $attributes['groupLabel']
+            ?? $attributes['group']
+            ?? 'xitara.nexus::lang.submenu.label'
+        );
+
+        if (!isset($categories[$groupCode])) {
+            $categories[$groupCode] = [
+                'label' => $groupLabel,
+                'items' => [],
+            ];
         }
 
-        if (strpos($sideItemCode, 'custommenulist.') !== false) {
-            $sub = explode('.', $sideItemCode);
-            $item->group = ucfirst($sub[1] ?? 'no_text');
-
-            if (isset($item->attributes['groupLabel'])) {
-                $item->group = $item->attributes['groupLabel'];
-            }
-        }
-
-        if (!isset($item->group)) {
-            $sub = explode('.', $item->code);
-            $item->group = e(trans('xitara.' . $sub[0] . '::lang.submenu.label'));
-        }
-
-        /**
-         * if permissions are given, show item only on have access
-         */
-        if (!empty($item->permissions)) {
-            foreach ($item->permissions as $permission) {
-                if ($this->user->hasAccess($permission)) {
-                    $categories[$item->group][$sideItemCode] = $item;
-                }
-            }
-        } else {
-            /**
-             * if no permissions are given, show item to everyone
-             */
-            $categories[$item->group][$sideItemCode] = $item;
-        }
+        $categories[$groupCode]['items'][$sideItemCode] = $item;
     }
-// exit;
 ?>
-    <ul class="top-level">
-        <?php foreach ($categories as $category => $items):
-            $collapsed = empty($_COOKIE['sidenav_tree']) ? true : in_array($category, $collapsedGroups);
-            ?>
-        <li data-group-code="<?= e($category); ?>"
-            <?= $collapsed ? 'data-status="collapsed"' : null; ?>
-        >
-            <div class="group">
-                <h3><?= e(trans($category)); ?></h3>
-            </div>
-            <ul>
-            <?php foreach ($items as $key => $item): ?>
-                <?php if (!isset($item->hidden) || $item->hidden == false): ?>
-                    <li class="
-                        <?= BackendMenu::isSideMenuItemActive($item) ? 'active' : null; ?>
-                        level-<?= isset($item->attributes['level']) ? $item->attributes['level'] : 1; ?>
-                        <?= isset($item->attributes['line']) ? ' border-' . $item->attributes['line'] : null; ?>
-                        "
-                        data-keywords="<?= e(trans($item->attributes['keywords'] ?? '')); ?>">
-                        <?= (isset($item->attributes['bold']) && $item->attributes['bold'] === true) ? '<b>' : null ?>
-                        <a href="<?= $item->url; ?>" target="<?= $item->attributes['target'] ?? '_self';?>">
-                            <?php if ($item->iconSvg === null): ?>
-                                <i class="sidebar-menu-item <?= $item->icon; ?>"></i>
-                            <?php else: ?>
-                                <img src="<?= $item->iconSvg; ?>">
-                            <?php endif; ?>
-                            <span class="header"><?= e(trans($item->label)); ?></span>
-                            <span class="description">
-                                <?= e(trans($item->attributes['description'] ?? '')); ?>
-                            </span>
-                        </a>
-                        <?= (isset($item->attributes['bold']) && $item->attributes['bold'] === true) ? '</b>' : null ?>
-                        <?php if ($item->counter > 0) : ?>
-                            <span
-                                class="counter"
-                                title="<?= $item->counterLabel ;?>"
-                                data-menu-id="<?= $key ;?>"
-                            >
-                                <?= $item->counter ;?>
-                            </span>
-                        <?php endif; ?>
-                    </li>
-                <?php endif; ?>
-            <?php endforeach; ?>
-            </ul>
-        </li>
-    <?php endforeach; ?>
-    </ul>
-<?php endif; ?>
 
-<script>
-    $(document).ready(function () {
-        /**
-         * Add click-listener to the li elements with the data-group-code attribute
-         * and write cookie accordingly
-         */
-        $('li[data-group-code]').each(function () {
-            $(this).on('click', function (e) {
-                console.log('click');
+<?php if ($categories): ?>
+    <nav
+        class="nexus-sidebar-navigation"
+        aria-label="<?= e(trans('xitara.nexus::lang.menu_configuration.navigation_label')) ?>">
+        <ul class="top-level nexus-menu-groups" role="list">
+            <?php foreach ($categories as $groupCode => $category): ?>
+                <?php
+                    $groupId = 'nexus-menu-group-'.substr(sha1($groupCode), 0, 12);
+                    $containsActiveItem = false;
 
-                if ($(e.target).is('a')) {
-                    return;
-                }
+                    foreach ($category['items'] as $item) {
+                        if (BackendMenu::isSideMenuItemActive($item)) {
+                            $containsActiveItem = true;
+                            break;
+                        }
+                    }
 
-                let groupCode = $(this).data('group-code');
-                let collapsedGroups = $('li[data-group-code][data-status="collapsed"]').map(function () {
-                    return $(this).data('group-code');
-                }).get();
+                    $collapsed = !$containsActiveItem && in_array($groupCode, $collapsedGroups, true);
+                ?>
+                <li
+                    class="nexus-menu-group"
+                    data-group-code="<?= e($groupCode) ?>"
+                    data-status="<?= $collapsed ? 'collapsed' : 'expanded' ?>">
+                    <div class="group nexus-menu-group-heading">
+                        <h3>
+                            <button
+                                type="button"
+                                class="nexus-menu-group-toggle"
+                                aria-expanded="<?= $collapsed ? 'false' : 'true' ?>"
+                                aria-controls="<?= e($groupId) ?>">
+                                <span><?= e(trans($category['label'])) ?></span>
+                                <i class="icon-angle-down" aria-hidden="true"></i>
+                            </button>
+                        </h3>
+                    </div>
 
-                if ($(this).attr('data-status') === 'collapsed') {
-                    // $(this).removeAttr('data-status');
-                    collapsedGroups = collapsedGroups.filter(function (code) {
-                        return code !== groupCode;
-                    });
-                } else {
-                    // $(this).attr('data-status', 'collapsed');
-                    collapsedGroups.push(groupCode);
-                }
+                    <ul id="<?= e($groupId) ?>" class="nexus-menu-group-items" role="list">
+                        <?php foreach ($category['items'] as $key => $item): ?>
+                            <?php
+                                $attributes = $item->attributes ?? [];
+                                $isActive = BackendMenu::isSideMenuItemActive($item);
+                                $target = $attributes['target'] ?? '_self';
+                                $description = $attributes['description'] ?? null;
+                                $level = max(1, (int) ($attributes['level'] ?? 1));
+                                $line = $attributes['line'] ?? null;
+                            ?>
+                            <?php if (empty($item->hidden)): ?>
+                                <li
+                                    class="nexus-menu-item level-<?= e($level) ?><?= $isActive ? ' active' : '' ?><?= $line ? ' border-'.e($line) : '' ?><?= !empty($attributes['bold']) ? ' is-emphasized' : '' ?>"
+                                    data-keywords="<?= e(trans($attributes['keywords'] ?? '')) ?>">
+                                    <a
+                                        class="nexus-menu-item-link"
+                                        href="<?= e($item->url) ?>"
+                                        target="<?= e($target) ?>"
+                                        <?= $target === '_blank' ? 'rel="noopener noreferrer"' : '' ?>
+                                        <?= $isActive ? 'aria-current="page"' : '' ?>>
+                                        <span class="nexus-menu-item-icon" aria-hidden="true">
+                                            <?php if ($item->iconSvg): ?>
+                                                <img src="<?= e(Url::asset($item->iconSvg)) ?>" alt="" loading="lazy">
+                                            <?php else: ?>
+                                                <i class="<?= e($item->icon) ?>"></i>
+                                            <?php endif ?>
+                                        </span>
 
-                let expiryDate = new Date();
-                expiryDate.setDate(expiryDate.getDate() + 30);
-                document.cookie = 'sidenav_tree=' + collapsedGroups.join('|') + '; path=/; expires=' + expiryDate.toUTCString();
-            });
-        });
-    });
-</script>
+                                        <span class="nexus-menu-item-content">
+                                            <span class="header nexus-menu-item-label"><?= e(trans($item->label)) ?></span>
+                                            <?php if ($description): ?>
+                                                <span class="description nexus-menu-item-description">
+                                                    <?= e(trans($description)) ?>
+                                                </span>
+                                            <?php endif ?>
+                                        </span>
+                                    </a>
+
+                                    <?php if ($item->counter !== null): ?>
+                                        <span
+                                            class="counter nexus-menu-item-counter"
+                                            data-menu-id="<?= e($key) ?>"
+                                            <?php if ($item->counterLabel): ?>
+                                                title="<?= e(trans($item->counterLabel)) ?>"
+                                            <?php endif ?>>
+                                            <?= e($item->counter) ?>
+                                        </span>
+                                    <?php endif ?>
+                                </li>
+                            <?php endif ?>
+                        <?php endforeach ?>
+                    </ul>
+                </li>
+            <?php endforeach ?>
+        </ul>
+    </nav>
+<?php endif ?>
