@@ -5,12 +5,18 @@ $font-4: michroma;
 $font-5: revalia;
 $font-6: 'Seven Segment Regular';
 $font-7: vt323;
+
 $default-gap: 2rem;
+
+//navigation and burger
 $nav-height: 5rem;
+
 $burger-top: 2rem;
 $burger-right: 2rem;
 $burger-width: 5rem;
 $burger-height: 2rem;
+
+// container (uncomment to override default)
 $container-max-widths: (
     sm: 540px,
     md: 760px,
@@ -19,6 +25,8 @@ $container-max-widths: (
     xxl: 1320px,
     3xl: 1530px,
 );
+
+// breakpoints (uncomment to override default)
 $grid-breakpoints: (
     xs: 0,
     sm: 576px,
@@ -28,6 +36,7 @@ $grid-breakpoints: (
     xxl: 1400px,
     3xl: 1600px,
 );
+
 $font-sans-serif:
     system-ui,
     -apple-system,

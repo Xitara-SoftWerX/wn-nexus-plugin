@@ -30,4 +30,4 @@ for (const generatedPath of generatedPaths) {
     console.log(`Removed ${generatedPath}`);
 }
 
-console.log('Lockfiles and installed dependencies were preserved.');
+// console.log('Lockfiles and installed dependencies were preserved.');

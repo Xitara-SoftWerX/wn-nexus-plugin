@@ -10,5 +10,6 @@
 /scripts/config.cjs
 .php-cs-fixer.cache
 *.log
+*.lock
 .DS_Store
 *.code-workspace

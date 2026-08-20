@@ -27,8 +27,10 @@ export const config = {
      */
     entrypoints: {
         app: './js/app.js',
+        pwa: './js/pwa.js',
+        sw: './js/sw.js',
+        backend: './js/backend.js',
         // app: './ts/app.ts',
-        // styles: './scss/styles.scss',
         // tailwind: './css/tailwind.css',
         // breakpoints: './scss/breakpoints.scss',
     },
