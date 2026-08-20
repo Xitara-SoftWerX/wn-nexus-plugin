@@ -8,23 +8,6 @@ Provides a shared backend side navigation, custom menus, and centralized menu so
 - Change to the `plugins/xitara/nexus` directory.
 - Run `yarn` to install all dependencies.
 
-## Commands
-
-- `start` - Start the development server.
-- `cleanup` - Remove generated files, `node_modules`, `vendor`, and other build data without deleting source files.
-- `watch` - Start Webpack in watch mode.
-- `dwatch` - Start Webpack in development watch mode.
-- `build` - Build the complete application and copy static content.
-- `dbuild` - Build the complete application in development mode and copy static content.
-- `zip` - Create a minimal distribution archive containing only required files.
-- `deploy` - Create an unpacked minimal distribution in a target directory.
-- `ftp` - Upload a minimized package to a configured server; requires `lftp`.
-- `analyze` - Analyze the production bundle.
-- `lint-code` - Run ESLint.
-- `lint-style` - Run Stylelint.
-- `check-eslint-config` - Check the ESLint configuration for unnecessary rules or conflicts with Prettier.
-- `check-stylelint-config` - Check the Stylelint configuration for unnecessary rules or conflicts with Prettier.
-
 ## Add plugins to the shared side navigation
 
 Nexus uses Winter's native `registerNavigation()` definition as its source. A plugin therefore needs neither a Nexus-specific boot hook nor a custom sidebar partial. Available main navigation items can be enabled and sorted by drag-and-drop under **Settings → Side navigation** in the backend.
@@ -150,3 +133,63 @@ public function registerSettings()
     ];
 }
 ```
+
+## Commands
+
+These commands are intended for plugin development and maintenance. Run them from the plugin directory with `yarn <command>`.
+
+### Setup and local development
+
+| Command     | Function                                                                                                                                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup`     | Creates `scripts/config.cjs` from `scripts/config.sample.cjs` when it does not exist, then installs the Composer dependencies. Review the generated deployment configuration before using packaging or upload commands. |
+| `prepare`   | Initializes Husky. This package lifecycle command normally runs automatically after installing JavaScript dependencies.                                                                                                 |
+| `start`     | Starts the Webpack development server, opens it in the default browser, writes generated files to disk, includes development-only entry points, and enables source maps without minification.                           |
+| `build`     | Creates a minified production build in `assets/`, copies files from `static/`, and generates the asset manifest and Webpack statistics.                                                                                 |
+| `dbuild`    | Creates an unminified development build with source maps, `.debug.js` filenames, and development-only entry points.                                                                                                     |
+| `watch`     | Runs the production build in watch mode.                                                                                                                                                                                |
+| `dwatch`    | Runs the development build in watch mode.                                                                                                                                                                               |
+| `build-all` | Runs a development build followed by a production build. The production pass enables removal of the configured functions and console methods through Terser.                                                            |
+| `analyze`   | Creates a production build and opens Webpack Bundle Analyzer with `assets/stats.json`.                                                                                                                                  |
+
+### Code quality and tests
+
+| Command          | Function                                                                                                                                                                                           |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lint`           | Runs `lint-js`, `lint-ts`, `lint-style`, `lint-php`, `lint-php-style`, and `typecheck` in sequence.                                                                                                |
+| `lint-js`        | Runs ESLint on `scripts/`, `test/`, `webpack/`, and JavaScript files in the project root.                                                                                                          |
+| `lint-ts`        | Runs ESLint on TypeScript files in `src/ts/`.                                                                                                                                                      |
+| `lint-style`     | Runs Stylelint on CSS and SCSS files in `src/`.                                                                                                                                                    |
+| `lint-php`       | Runs `php -l` on project PHP files, excluding generated assets, dependencies, documentation output, distribution files, and static copies. Optional file arguments limit the check to those files. |
+| `lint-php-style` | Checks PHP code style with PHP CS Fixer, shows a diff, and does not modify files.                                                                                                                  |
+| `lint-fix`       | Applies ESLint, Stylelint, PHP CS Fixer, and Prettier fixes. This command modifies files across the project.                                                                                       |
+| `typecheck`      | Runs the TypeScript compiler without emitting files.                                                                                                                                               |
+| `format`         | Formats the project with Prettier and writes the changes.                                                                                                                                          |
+| `format-check`   | Checks Prettier formatting without modifying files.                                                                                                                                                |
+| `test-unit`      | Runs all `test/**/*.test.js` files with Node's built-in test runner.                                                                                                                               |
+| `test-build`     | Verifies the fixed artifact set defined in `scripts/check-build.js`, checks for unwanted stylesheet loader scripts, and validates Bootstrap and prefixed Tailwind markers in the generated CSS.    |
+| `test`           | Runs linting, formatting checks, unit tests, a production build, and the build artifact checks in sequence.                                                                                        |
+
+> [!NOTE]
+> `test-build` currently expects `assets/css/breakpoints.css`, `assets/css/styles.css`, and `assets/css/tailwind.css`, although the corresponding entry points are commented out in `webpack.meta.js`. Align the entry points and artifact checker before relying on this command or the aggregate `test` command.
+
+### Packaging, deployment, and documentation
+
+The packaging and deployment commands use `scripts/config.cjs`. They can create local distribution files or modify a configured remote system.
+
+| Command  | Function                                                                                                                                                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `zip`    | Runs a production build, creates a timestamped distribution directory from the configured file list, installs optimized Composer dependencies without development packages inside it, and creates a ZIP archive. Requires the system `zip` command.           |
+| `upload` | Uploads the newest matching distribution directory, archive, or both according to `UPLOAD_TYPE`. Supports FTP, FTPS, SCP, and SFTP and can optionally change ownership, back up and rename the remote directory, and execute a remote post-deployment script. |
+| `deploy` | Runs `zip` and then `upload`, creating and deploying a new package in one operation.                                                                                                                                                                          |
+| `docs`   | Generates PHP API documentation in `.docs/api` with phpDocumentor and opens the generated index in the configured or platform-default browser.                                                                                                                |
+
+### Maintenance
+
+| Command   | Function                                                                                                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ncu`     | Updates dependency version ranges in `package.json` with npm-check-updates. It does not install the updated dependencies.                                                                                     |
+| `cleanup` | Recursively deletes generated assets, caches, documentation and distribution output, the generated `config/` copy, installed Composer and JavaScript dependencies, lockfiles, and other generated root files. |
+
+> [!CAUTION]
+> `cleanup` deletes `node_modules/`, `vendor/`, `yarn.lock`, `composer.lock`, `assets/`, `dist/`, and additional generated paths. Review `scripts/cleanup.js` before running it when local build or dependency state must be preserved.
