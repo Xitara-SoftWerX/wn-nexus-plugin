@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build the compact backend stylesheet as a supported Webpack entry point.
 - Move active browser sources from JavaScript to strict TypeScript and modernize the related build and lint configuration.
 - Align npm version, license, and repository metadata with the Winter plugin release and source repository.
+- Update the canonical repository metadata after moving the project to the Xitara-SoftWerX GitHub organization.
 - Replace obsolete implementation-history comments and inactive backend-user hooks with current intent-focused documentation.
 - Update the project documentation to reflect the supported runtime baseline.
 - Exclude published migration files from automatic Prettier rewrites.
@@ -50,5 +51,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use the actual account-deletion partial, restrict permanent cleanup to explicitly marked self-deletions, and cancel that cleanup when an account is restored.
 - Deny dashboard report-container AJAX requests when the user lacks the Nexus dashboard permission.
 
-[Unreleased]: https://github.com/xitara/wn-nexus-plugin/compare/v2.4.0...HEAD
-[2.4.0]: https://github.com/xitara/wn-nexus-plugin/releases/tag/v2.4.0
+[Unreleased]: https://github.com/Xitara-SoftWerX/wn-nexus-plugin/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/Xitara-SoftWerX/wn-nexus-plugin/releases/tag/v2.4.0
