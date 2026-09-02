@@ -1,27 +1,25 @@
 <?php
-    $sideMenuItems = BackendMenu::listSideMenuItems();
-    $collapsedGroups = explode('|', $_COOKIE['nexus_sidenav_groupStatus'] ?? '');
-    $categories = [];
+$sideMenuItems = BackendMenu::listSideMenuItems();
+$collapsedGroups = explode('|', $_COOKIE['nexus_sidenav_groupStatus'] ?? '');
+$categories = [];
 
-    foreach ($sideMenuItems as $sideItemCode => $item) {
-        $attributes = $item->attributes ?? [];
-        $groupCode = (string) ($attributes['nexusGroupCode'] ?? $attributes['group'] ?? 'nexus');
-        $groupLabel = (string) (
-            $attributes['nexusGroupLabel']
-            ?? $attributes['groupLabel']
-            ?? $attributes['group']
-            ?? 'xitara.nexus::lang.submenu.label'
-        );
+foreach ($sideMenuItems as $sideItemCode => $item) {
+    $attributes = $item->attributes ?? [];
+    $groupCode = (string) ($attributes['nexusGroupCode'] ?? ($attributes['group'] ?? 'nexus'));
+    $groupLabel =
+        (string) ($attributes['nexusGroupLabel'] ??
+            ($attributes['groupLabel'] ??
+                ($attributes['group'] ?? 'xitara.nexus::lang.submenu.label')));
 
-        if (!isset($categories[$groupCode])) {
-            $categories[$groupCode] = [
-                'label' => $groupLabel,
-                'items' => [],
-            ];
-        }
-
-        $categories[$groupCode]['items'][$sideItemCode] = $item;
+    if (!isset($categories[$groupCode])) {
+        $categories[$groupCode] = [
+            'label' => $groupLabel,
+            'items' => [],
+        ];
     }
+
+    $categories[$groupCode]['items'][$sideItemCode] = $item;
+}
 ?>
 
 <?php if ($categories): ?>
@@ -31,17 +29,17 @@
         <ul class="top-level nexus-menu-groups" role="list">
             <?php foreach ($categories as $groupCode => $category): ?>
                 <?php
-                    $groupId = 'nexus-menu-group-'.substr(sha1($groupCode), 0, 12);
-                    $containsActiveItem = false;
+                $groupId = 'nexus-menu-group-' . substr(sha1($groupCode), 0, 12);
+                $containsActiveItem = false;
 
-                    foreach ($category['items'] as $item) {
-                        if (BackendMenu::isSideMenuItemActive($item)) {
-                            $containsActiveItem = true;
-                            break;
-                        }
+                foreach ($category['items'] as $item) {
+                    if (BackendMenu::isSideMenuItemActive($item)) {
+                        $containsActiveItem = true;
+                        break;
                     }
+                }
 
-                    $collapsed = !$containsActiveItem && in_array($groupCode, $collapsedGroups, true);
+                $collapsed = !$containsActiveItem && in_array($groupCode, $collapsedGroups, true);
                 ?>
                 <li
                     class="nexus-menu-group"
@@ -63,38 +61,57 @@
                     <ul id="<?= e($groupId) ?>" class="nexus-menu-group-items" role="list">
                         <?php foreach ($category['items'] as $key => $item): ?>
                             <?php
-                                $attributes = $item->attributes ?? [];
-                                $isActive = BackendMenu::isSideMenuItemActive($item);
-                                $target = $attributes['target'] ?? '_self';
-                                $description = $attributes['description'] ?? null;
-                                $level = max(1, (int) ($attributes['level'] ?? 1));
-                                $line = $attributes['line'] ?? null;
+                            $attributes = $item->attributes ?? [];
+                            $isActive = BackendMenu::isSideMenuItemActive($item);
+                            $target = $attributes['target'] ?? '_self';
+                            $description = $attributes['description'] ?? null;
+                            $level = max(1, (int) ($attributes['level'] ?? 1));
+                            $line = $attributes['line'] ?? null;
+                            $itemClasses = ['nexus-menu-item', 'level-' . $level];
+
+                            if ($isActive) {
+                                $itemClasses[] = 'active';
+                            }
+
+                            if ($line) {
+                                $itemClasses[] = 'border-' . $line;
+                            }
+
+                            if (!empty($attributes['bold'])) {
+                                $itemClasses[] = 'is-emphasized';
+                            }
                             ?>
                             <?php if (empty($item->hidden)): ?>
                                 <li
-                                    class="nexus-menu-item level-<?= e($level) ?><?= $isActive ? ' active' : '' ?><?= $line ? ' border-'.e($line) : '' ?><?= !empty($attributes['bold']) ? ' is-emphasized' : '' ?>"
+                                    class="<?= e(implode(' ', $itemClasses)) ?>"
                                     data-keywords="<?= e(trans($attributes['keywords'] ?? '')) ?>">
                                     <a
                                         class="nexus-menu-item-link"
                                         href="<?= e($item->url) ?>"
                                         target="<?= e($target) ?>"
-                                        <?= $target === '_blank' ? 'rel="noopener noreferrer"' : '' ?>
+                                        <?= $target === '_blank'
+                                            ? 'rel="noopener noreferrer"'
+                                            : '' ?>
                                         <?= $isActive ? 'aria-current="page"' : '' ?>>
                                         <span class="nexus-menu-item-icon" aria-hidden="true">
                                             <?php if ($item->iconSvg): ?>
-                                                <img src="<?= e(Url::asset($item->iconSvg)) ?>" alt="" loading="lazy">
+                                                <img src="<?= e(
+                                                    Url::asset($item->iconSvg),
+                                                ) ?>" alt="" loading="lazy">
                                             <?php else: ?>
                                                 <i class="<?= e($item->icon) ?>"></i>
-                                            <?php endif ?>
+                                            <?php endif; ?>
                                         </span>
 
                                         <span class="nexus-menu-item-content">
-                                            <span class="header nexus-menu-item-label"><?= e(trans($item->label)) ?></span>
+                                            <span class="header nexus-menu-item-label"><?= e(
+                                                trans($item->label),
+                                            ) ?></span>
                                             <?php if ($description): ?>
                                                 <span class="description nexus-menu-item-description">
                                                     <?= e(trans($description)) ?>
                                                 </span>
-                                            <?php endif ?>
+                                            <?php endif; ?>
                                         </span>
                                     </a>
 
@@ -104,16 +121,16 @@
                                             data-menu-id="<?= e($key) ?>"
                                             <?php if ($item->counterLabel): ?>
                                                 title="<?= e(trans($item->counterLabel)) ?>"
-                                            <?php endif ?>>
+                                            <?php endif; ?>>
                                             <?= e($item->counter) ?>
                                         </span>
-                                    <?php endif ?>
+                                    <?php endif; ?>
                                 </li>
-                            <?php endif ?>
-                        <?php endforeach ?>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
                     </ul>
                 </li>
-            <?php endforeach ?>
+            <?php endforeach; ?>
         </ul>
     </nav>
-<?php endif ?>
+<?php endif; ?>

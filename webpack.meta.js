@@ -26,11 +26,10 @@ export const config = {
      * macht die gewünschte Versionierung lediglich ausdrücklich sichtbar.
      */
     entrypoints: {
-        app: './js/app.js',
-        pwa: './js/pwa.js',
-        sw: './js/sw.js',
-        backend: './js/backend.js',
-        // app: './ts/app.ts',
+        app: './ts/app.ts',
+        backend: './ts/backend.ts',
+        compact: './scss/compact.scss',
+        exception: './scss/exception.scss',
         // tailwind: './css/tailwind.css',
         // breakpoints: './scss/breakpoints.scss',
     },

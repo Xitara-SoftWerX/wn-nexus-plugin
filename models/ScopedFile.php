@@ -9,11 +9,9 @@ class ScopedFile extends File
 {
     private const METADATA_STORAGE_PATH = 'nexus_storage_path';
 
-    public function setStoragePath(?string $path) : static
+    public function setStoragePath(?string $path): static
     {
-        $metadata = is_array($this->metadata)
-            ? $this->metadata
-            : [];
+        $metadata = is_array($this->metadata) ? $this->metadata : [];
 
         $path = $this->normalizeStoragePath($path);
 
@@ -28,30 +26,24 @@ class ScopedFile extends File
         return $this;
     }
 
-    public function getStoragePath() : ?string
+    public function getStoragePath(): ?string
     {
-        $metadata = is_array($this->metadata)
-            ? $this->metadata
-            : [];
+        $metadata = is_array($this->metadata) ? $this->metadata : [];
 
         return $metadata[self::METADATA_STORAGE_PATH] ?? null;
     }
 
-    public function getStorageDirectory() : string
+    public function getStorageDirectory(): string
     {
-        return $this->appendStoragePath(
-            parent::getStorageDirectory()
-        );
+        return $this->appendStoragePath(parent::getStorageDirectory());
     }
 
-    public function getPublicPath() : string
+    public function getPublicPath(): string
     {
-        return $this->appendStoragePath(
-            parent::getPublicPath()
-        );
+        return $this->appendStoragePath(parent::getPublicPath());
     }
 
-    protected function appendStoragePath(string $basePath) : string
+    protected function appendStoragePath(string $basePath): string
     {
         $basePath = rtrim($basePath, '/') . '/';
         $storagePath = $this->getStoragePath();
@@ -63,23 +55,17 @@ class ScopedFile extends File
         return $basePath . $storagePath . '/';
     }
 
-    protected function normalizeStoragePath(?string $path) : ?string
+    protected function normalizeStoragePath(?string $path): ?string
     {
         if ($path === null || trim($path) === '') {
             return null;
         }
 
-        $path = trim(
-            str_replace('\\', '/', $path),
-            '/'
-        );
+        $path = trim(str_replace('\\', '/', $path), '/');
 
-        if (
-            str_contains($path, '..')
-            || !preg_match('#^[a-zA-Z0-9/_-]+$#', $path)
-        ) {
+        if (str_contains($path, '..') || !preg_match('#^[a-zA-Z0-9/_-]+$#', $path)) {
             throw new InvalidArgumentException(
-                sprintf('Invalid attachment storage path: "%s"', $path)
+                sprintf('Invalid attachment storage path: "%s"', $path),
             );
         }
 

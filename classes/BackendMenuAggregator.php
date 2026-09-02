@@ -5,9 +5,13 @@ namespace Xitara\Nexus\Classes;
 use Backend\Classes\MainMenuItem;
 use Backend\Classes\NavigationManager;
 use Backend\Classes\SideMenuItem;
+use Config;
 use ReflectionMethod;
+use Schema;
+use Str;
 use System\Classes\PluginManager;
 use Throwable;
+use Xitara\Nexus\Models\CustomMenu;
 use Xitara\Nexus\Models\Menu;
 
 /**
@@ -21,6 +25,9 @@ class BackendMenuAggregator
     /** @var array<string, array> */
     protected $legacyItems = [];
 
+    /** @var bool */
+    protected $legacyItemsCollected = false;
+
     /** @var array */
     protected $nexusCustomItems = [];
 
@@ -30,6 +37,7 @@ class BackendMenuAggregator
     public function extend(NavigationManager $manager): void
     {
         $this->collectLegacyItems();
+        $this->collectCustomItems();
 
         $sources = $this->captureSources($manager);
         BackendMenuRegistry::replaceSources($sources);
@@ -45,8 +53,17 @@ class BackendMenuAggregator
 
             foreach ($definitions as $sourceCode => $definition) {
                 $targetCode = $this->targetCode($source, (string) $sourceCode);
-                $definition = $this->normalizeDefinition($source, (string) $sourceCode, $definition);
-                $manager->addSideMenuItem(self::OWNER, self::MAIN_MENU_CODE, $targetCode, $definition);
+                $definition = $this->normalizeDefinition(
+                    $source,
+                    (string) $sourceCode,
+                    $definition,
+                );
+                $manager->addSideMenuItem(
+                    self::OWNER,
+                    self::MAIN_MENU_CODE,
+                    $targetCode,
+                    $definition,
+                );
 
                 $firstTargetCode = $firstTargetCode ?? $targetCode;
                 $this->registerContextAliases($source, (string) $sourceCode, $targetCode);
@@ -54,7 +71,10 @@ class BackendMenuAggregator
                 if (empty($definition['permissions'])) {
                     $hasPublicItem = true;
                 } else {
-                    $parentPermissions = array_merge($parentPermissions, $definition['permissions']);
+                    $parentPermissions = array_merge(
+                        $parentPermissions,
+                        $definition['permissions'],
+                    );
                 }
             }
 
@@ -63,7 +83,7 @@ class BackendMenuAggregator
                     $source['owner'],
                     $source['main_menu_code'],
                     null,
-                    $firstTargetCode
+                    $firstTargetCode,
                 );
             }
 
@@ -74,7 +94,7 @@ class BackendMenuAggregator
         foreach ($this->nexusCustomItems as $code => $definition) {
             $attributes = $definition['attributes'] ?? [];
             $groupReference = (string) ($attributes['group'] ?? 'xitara.nexus.custom');
-            $configuration = $configurations['legacy:'.strtolower($groupReference)] ?? null;
+            $configuration = $configurations['legacy:' . strtolower($groupReference)] ?? null;
 
             if ($configuration && !$configuration->is_enabled) {
                 continue;
@@ -84,14 +104,19 @@ class BackendMenuAggregator
             $localOrder = $customGroupCounts[$groupReference] - 1;
             $groupSortOrder = $configuration
                 ? (int) $configuration->sort_order
-                : ((int) ($definition['order'] ?? 9999) - $localOrder);
+                : (int) ($definition['order'] ?? 9999) - $localOrder;
 
-            $attributes['nexusGroupCode'] = 'CUSTOM/'.strtoupper($groupReference);
+            $attributes['nexusGroupCode'] = 'CUSTOM/' . strtoupper($groupReference);
             $attributes['nexusGroupLabel'] = $attributes['groupLabel'] ?? $groupReference;
             $definition['attributes'] = $attributes;
-            $definition['order'] = ($groupSortOrder * 1000) + $localOrder;
+            $definition['order'] = $groupSortOrder * 1000 + $localOrder;
 
-            $manager->addSideMenuItem(self::OWNER, self::MAIN_MENU_CODE, (string) $code, $definition);
+            $manager->addSideMenuItem(
+                self::OWNER,
+                self::MAIN_MENU_CODE,
+                (string) $code,
+                $definition,
+            );
 
             if (empty($definition['permissions'])) {
                 $hasPublicItem = true;
@@ -107,8 +132,11 @@ class BackendMenuAggregator
     /**
      * Compatibility hook used by plugins that still call Nexus::getSideMenu().
      */
-    public function addLegacyPluginItems(NavigationManager $manager, string $owner, string $mainMenuCode): void
-    {
+    public function addLegacyPluginItems(
+        NavigationManager $manager,
+        string $owner,
+        string $mainMenuCode,
+    ): void {
         $this->collectLegacyItems();
         $items = $this->legacyItems[strtoupper($owner)] ?? [];
 
@@ -194,11 +222,13 @@ class BackendMenuAggregator
         $configurations = [];
 
         foreach (Menu::whereNotNull('owner')->get() as $menu) {
-            $configurations[BackendMenuRegistry::sourceKey($menu->owner, $menu->main_menu_code)] = $menu;
+            $configurations[
+                BackendMenuRegistry::sourceKey($menu->owner, $menu->main_menu_code)
+            ] = $menu;
         }
 
         foreach (Menu::whereNull('owner')->get() as $menu) {
-            $configurations['legacy:'.strtolower($menu->code)] = $menu;
+            $configurations['legacy:' . strtolower($menu->code)] = $menu;
         }
 
         return $configurations;
@@ -209,9 +239,9 @@ class BackendMenuAggregator
         $selected = [];
 
         foreach ($sources as $source) {
-            $configuration = $configurations[$source['key']]
-                ?? $configurations['legacy:'.strtolower($source['owner'])]
-                ?? null;
+            $configuration =
+                $configurations[$source['key']] ??
+                ($configurations['legacy:' . strtolower($source['owner'])] ?? null);
 
             $enabled = $configuration ? (bool) $configuration->is_enabled : $source['is_legacy'];
 
@@ -221,7 +251,7 @@ class BackendMenuAggregator
 
             $source['sort_order'] = $configuration
                 ? (int) $configuration->sort_order
-                : (((int) $source['order']) * 100);
+                : ((int) $source['order']) * 100;
             $selected[] = $source;
         }
 
@@ -255,14 +285,18 @@ class BackendMenuAggregator
         ];
     }
 
-    protected function normalizeDefinition(array $source, string $sourceCode, array $definition): array
-    {
+    protected function normalizeDefinition(
+        array $source,
+        string $sourceCode,
+        array $definition,
+    ): array {
         $attributes = $definition['attributes'] ?? [];
-        $groupLabel = $attributes['groupLabel'] ?? $attributes['group'] ?? $source['label'];
+        $groupLabel = $attributes['groupLabel'] ?? ($attributes['group'] ?? $source['label']);
         $groupCode = $source['key'];
-        $localOrder = isset($definition['order']) && (int) $definition['order'] >= 0
-            ? (int) $definition['order']
-            : 0;
+        $localOrder =
+            isset($definition['order']) && (int) $definition['order'] >= 0
+                ? (int) $definition['order']
+                : 0;
 
         $attributes['nexusGroupCode'] = $groupCode;
         $attributes['nexusGroupLabel'] = $groupLabel;
@@ -272,7 +306,7 @@ class BackendMenuAggregator
         $definition['permissions'] = !empty($definition['permissions'])
             ? $definition['permissions']
             : $source['permissions'];
-        $definition['order'] = ((int) $source['sort_order'] * 1000) + $localOrder;
+        $definition['order'] = (int) $source['sort_order'] * 1000 + $localOrder;
 
         return $definition;
     }
@@ -281,11 +315,11 @@ class BackendMenuAggregator
     {
         $owner = strtolower(preg_replace('/[^a-z0-9.]+/i', '-', $source['owner']));
         $item = strtolower(preg_replace('/[^a-z0-9._-]+/i', '-', $sourceCode));
-        $target = trim($owner.'.'.$item, '.');
+        $target = trim($owner . '.' . $item, '.');
 
         if (isset($this->usedTargetCodes[$target])) {
             $main = strtolower(preg_replace('/[^a-z0-9._-]+/i', '-', $source['main_menu_code']));
-            $target = trim($owner.'.'.$main.'.'.$item, '.');
+            $target = trim($owner . '.' . $main . '.' . $item, '.');
         }
 
         $this->usedTargetCodes[$target] = true;
@@ -293,34 +327,43 @@ class BackendMenuAggregator
         return $target;
     }
 
-    protected function registerContextAliases(array $source, string $sourceCode, string $targetCode): void
-    {
+    protected function registerContextAliases(
+        array $source,
+        string $sourceCode,
+        string $targetCode,
+    ): void {
         $aliases = [$sourceCode];
         $parts = explode('.', $sourceCode);
         $leaf = end($parts);
 
         $aliases[] = $leaf;
-        $aliases[] = 'nexus.'.$leaf;
-        $aliases[] = $source['main_menu_code'].'.'.$leaf;
+        $aliases[] = 'nexus.' . $leaf;
+        $aliases[] = $source['main_menu_code'] . '.' . $leaf;
 
         foreach (array_unique($aliases) as $alias) {
             BackendMenuRegistry::addContextMapping(
                 $source['owner'],
                 $source['main_menu_code'],
                 $alias,
-                $targetCode
+                $targetCode,
             );
         }
     }
 
     protected function collectLegacyItems(): void
     {
-        if ($this->legacyItems !== [] || $this->nexusCustomItems !== []) {
+        if ($this->legacyItemsCollected) {
             return;
         }
 
+        $this->legacyItemsCollected = true;
+
         foreach (PluginManager::instance()->getPlugins() as $name => $plugin) {
-            $namespace = str_replace('.', '\\', $name).'\\Plugin';
+            if (strtoupper($name) === strtoupper(self::OWNER)) {
+                continue;
+            }
+
+            $namespace = str_replace('.', '\\', $name) . '\\Plugin';
 
             if (!method_exists($namespace, 'injectSideMenu')) {
                 continue;
@@ -332,7 +375,7 @@ class BackendMenuAggregator
                     ? $plugin::injectSideMenu()
                     : $plugin->injectSideMenu();
             } catch (Throwable $exception) {
-                \Log::warning('Unable to collect legacy Nexus menu items from '.$name, [
+                \Log::warning('Unable to collect legacy Nexus menu items from ' . $name, [
                     'exception' => $exception,
                 ]);
                 continue;
@@ -342,12 +385,62 @@ class BackendMenuAggregator
                 continue;
             }
 
-            if (strtoupper($name) === strtoupper(self::OWNER)) {
-                $this->nexusCustomItems = $items;
-                continue;
-            }
-
             $this->legacyItems[strtoupper($name)] = $items;
+        }
+    }
+
+    /**
+     * Build Nexus custom links directly instead of routing them through the
+     * deprecated plugin-reflection compatibility layer.
+     */
+    protected function collectCustomItems(): void
+    {
+        $this->nexusCustomItems = [];
+
+        if (!Schema::hasTable('xitara_nexus_custommenus')) {
+            return;
+        }
+
+        foreach (
+            CustomMenu::where('is_submenu', true)->where('is_active', true)->get()
+            as $customMenu
+        ) {
+            $groupCode = $customMenu->getNexusGroupCode();
+            $permissionCodes = array_values(
+                array_unique([
+                    $customMenu->getPermissionCode(),
+                    $customMenu->getLegacyPermissionCode(),
+                ]),
+            );
+            $order = 0;
+
+            foreach ((array) $customMenu->links as $link) {
+                if (empty($link['is_active'])) {
+                    continue;
+                }
+
+                $iconSvg = null;
+                if (!empty($link['icon_image'])) {
+                    $iconSvg = url(Config::get('cms.storage.media.path') . $link['icon_image']);
+                }
+
+                $code = $customMenu->getNavigationNamespace() . '.' . Str::slug($link['text']);
+                $this->nexusCustomItems[$code] = [
+                    'label' => $link['text'],
+                    'url' => $link['link'],
+                    'icon' => $link['icon'] ?? null,
+                    'iconSvg' => $iconSvg,
+                    'permissions' => $permissionCodes,
+                    'attributes' => [
+                        'group' => $groupCode,
+                        'groupLabel' => $customMenu->name,
+                        'target' => !empty($link['is_blank']) ? '_blank' : null,
+                        'keywords' => $link['keywords'] ?? null,
+                        'description' => $link['description'] ?? null,
+                    ],
+                    'order' => $order++,
+                ];
+            }
         }
     }
 

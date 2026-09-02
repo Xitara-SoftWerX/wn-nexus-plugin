@@ -3,14 +3,20 @@
 namespace Xitara\Nexus;
 
 use Backend;
+use Backend\Controllers\Preferences as BackendPreferences;
 use Backend\Controllers\Users;
 use Backend\Models\Preference;
 use Backend\Models\User;
 use Backend\Models\UserRole;
 use System\Classes\PluginBase;
+use Throwable;
 use Xitara\Nexus\Classes\BackendMenuAggregator;
 use Xitara\Nexus\Classes\BackendMenuRegistry;
+use Xitara\Nexus\Classes\BackendUserPurger;
+use Xitara\Nexus\Classes\ExceptionEditorLinkBuilder;
+use Xitara\Nexus\Classes\ExceptionViewCompatibility;
 use Xitara\Nexus\Models\CustomMenu;
+use Xitara\Nexus\Models\LocaleTimezone;
 use Xitara\Nexus\Models\Menu;
 use Xitara\Nexus\Models\Settings as NexusSettings;
 
@@ -21,12 +27,7 @@ class Plugin extends PluginBase
      */
     public $require = [];
 
-    /**
-     * Returns information about this plugin.
-     *
-     * @return array
-     */
-    public function pluginDetails()
+    public function pluginDetails(): array
     {
         return [
             'name' => 'xitara.nexus::lang.plugin.name',
@@ -38,47 +39,33 @@ class Plugin extends PluginBase
         ];
     }
 
-    public function register()
+    public function register(): void
     {
         \BackendMenu::registerContextSidenavPartial(
             'Xitara.Nexus',
             'nexus',
-            '$/xitara/nexus/partials/_sidebar.htm'
+            '$/xitara/nexus/partials/_sidebar.htm',
         );
-
-        $this->registerConsoleCommand('xitara.fakeblog', 'Xitara\Nexus\Console\FakeBlog');
-        $this->registerConsoleCommand('xitara.fakeuser', 'Xitara\Nexus\Console\FakeUser');
-        $this->registerConsoleCommand('nexus.test', 'Xitara\Nexus\Console\Test');
     }
 
-    /**
-     * @return null
-     */
-    public function boot()
+    public function boot(): void
     {
-        /**
-         * include helpers.
-         */
-        include_once \dirname(__FILE__).'/helpers.php';
+        include_once __DIR__ . '/helpers.php';
 
-        // Check if we are currently in backend module.
+        $exceptionViewCompatibility = $this->bootExtendedExceptionView();
+        $this->bootTranslateExtend();
+
         if (!\App::runningInBackend()) {
             return;
         }
 
-        /*
-         * remove gravatar call
-         */
-        // User::extend(function ($model) {
-        // $model->bindEvent('model.afterFetch', function () use ($model) {
-        // $file = new \System\Models\File;
-        // $path = plugins_path('xitara/nexus/assets/images/avatar.png');
-        // $model->avatar = $file->fromFile($path);
-        // });
-        // });
+        $this->bootExceptionEditorPreferences();
+        $this->bootExceptionCompatibilityWarning($exceptionViewCompatibility);
 
         $menuAggregator = new BackendMenuAggregator();
-        \Event::listen('backend.menu.extendItems', function ($navigationManager) use ($menuAggregator) {
+        \Event::listen('backend.menu.extendItems', function ($navigationManager) use (
+            $menuAggregator,
+        ) {
             $menuAggregator->extend($navigationManager);
         });
 
@@ -89,38 +76,47 @@ class Plugin extends PluginBase
             BackendMenuRegistry::remapCurrentContext();
 
             if (NexusSettings::get('is_compact_display')) {
-                $controller->addCss(\Config::get('cms.pluginsPath').'/xitara/nexus/assets/css/compact.css');
+                $controller->addCss(
+                    \Config::get('cms.pluginsPath') . '/xitara/nexus/assets/css/compact.css',
+                );
             }
 
-            $controller->addCss(\Config::get('cms.pluginsPath').'/xitara/nexus/assets/css/backend.css');
-            $controller->addJs(\Config::get('cms.pluginsPath').'/xitara/nexus/assets/js/backend.js');
+            $controller->addCss(
+                \Config::get('cms.pluginsPath') . '/xitara/nexus/assets/css/backend.css',
+            );
+            $controller->addJs(
+                \Config::get('cms.pluginsPath') . '/xitara/nexus/assets/js/backend.js',
+            );
 
             if ($controller instanceof Backend\Controllers\Index) {
                 return \Redirect::to('/backend/xitara/nexus/dashboard');
             }
         });
 
-        /*
-         * remove original dashboard
-         */
+        // The Nexus dashboard keeps Winter's widget UI inside the shared side menu.
         \Event::listen('backend.menu.extendItems', function ($navigationManager) {
             $navigationManager->removeMainMenuItem('Winter.Backend', 'dashboard');
         });
 
         User::extend(function ($model) {
-            /*
-             * remove roles publisher and developer if user is not an superuser
-             */
+            if (BackendUserPurger::isAvailable()) {
+                $model->bindEvent('model.beforeRestore', function () use ($model): void {
+                    $model->{BackendUserPurger::REQUESTED_AT_COLUMN} = null;
+                });
+            }
+
+            // Non-superusers may only assign non-system roles.
             $model->addDynamicMethod('getMyRoleOptions', function ($model) {
                 $result = [];
 
                 $user = \BackendAuth::getUser();
-
-                if ($user->is_superuser == 1) {
-                    $roles = UserRole::all();
+                if ($user === null) {
+                    return $result;
                 }
 
-                if ($user->is_superuser == 0) {
+                if ($user->isSuperUser()) {
+                    $roles = UserRole::all();
+                } else {
                     $roles = UserRole::where('is_system', 0)->get();
                 }
 
@@ -132,81 +128,222 @@ class Plugin extends PluginBase
             });
         });
 
-        /*
-         * extend other plugins if needed
-         */
         \Event::listen('backend.form.extendFieldsBefore', function ($widget) {
-            /*
-             * set available role options in backend user setting
-             */
             if ($widget->getController() instanceof Users && $widget->model instanceof User) {
                 $widget->tabs['fields']['role']['options'] = 'getMyRoleOptions';
             }
         });
 
-        /*
-         * add new toolbor for disable group and permission tab for non superuser
-         */
         Users::extend(function ($controller) {
-            /*
-             * soft delete user account
-             */
             $controller->addDynamicMethod('onDeleteAccount', function () {
                 $user = \BackendAuth::getUser();
-                \Event::fire('backend.user.beforeDelete', [$user]);
-                $user->delete();
-                \BackendAuth::logout($user);
-                \Flash::success('Account erfolgreich deaktiviert');
+                BackendUserPurger::requestDeletion($user);
+                \BackendAuth::logout();
+                \Flash::success(trans('xitara.nexus::lang.deleteAccount.success'));
 
                 return \Redirect::to('/backend');
             });
         });
 
-        /*
-         * remove groups and permission columns from non superuser in list
-         */
-        Users::extendListColumns(function ($list, $model) {
-            if (\BackendAuth::getUser()->isSuperUser()) {
-                return;
-            }
-
-            // $list->removeColumn('permissions');
-            // $list->removeColumn('groups');
-        });
-
-        /*
-         * remove groups and permission tabs from non superuser in form
-         */
         Users::extendFormFields(function ($form, $model, $context) {
             if (\BackendAuth::getUser()->isSuperUser()) {
                 return;
             }
 
-            // $form->removeField('permissions');
-            // $form->removeField('groups');
-
-            if (\Request::segment(4) == 'myaccount') {
+            if (\Request::segment(4) === 'myaccount') {
                 $form->addTabFields([
                     'deleteAccount' => [
                         'tab' => 'backend::lang.user.account',
                         'label' => 'xitara.nexus::lang.deleteAccount.label',
                         'comment' => 'xitara.nexus::lang.deleteAccount.comment',
                         'type' => 'partial',
-                        'path' => '$/xitara/nexus/partials/_deleteaccount.htm',
+                        'path' => '$/xitara/nexus/partials/_deleteaccount.php',
                     ],
                 ]);
             }
         });
-
-        /*
-         * add timezone dropdown to translate-plugin
-         */
-        $this->bootTranslateExtend();
     }
 
-    public function registerSettings()
+    /**
+     * Registers the compatible Nexus exception view without affecting the core fallback.
+     */
+    private function bootExtendedExceptionView(): ExceptionViewCompatibility
     {
-        if (($category = NexusSettings::get('menu_text')) == '') {
+        $compatibility = new ExceptionViewCompatibility();
+
+        try {
+            if (\App::runningInConsole() || !$this->isExtendedExceptionViewConfigured()) {
+                return $compatibility;
+            }
+
+            $status = $compatibility->inspect();
+            if ($status['compatible']) {
+                \View::prependNamespace('system', \dirname($status['plugin_view_path']));
+            }
+        } catch (Throwable $exception) {
+            // The original Winter namespace remains untouched on every failure.
+        }
+
+        return $compatibility;
+    }
+
+    /**
+     * Adds per-user editor settings to Winter's existing preference model.
+     */
+    private function bootExceptionEditorPreferences(): void
+    {
+        \Event::listen('backend.form.extendFields', function ($widget) {
+            if (
+                !($widget->getController() instanceof BackendPreferences) ||
+                !($widget->model instanceof Preference) ||
+                $widget->isNested
+            ) {
+                return;
+            }
+
+            $editorOptions = ['' => trans('xitara.nexus::settings.exception.editor_none')];
+            $editorOptions += ExceptionEditorLinkBuilder::getPresetOptions();
+            $editorOptions[ExceptionEditorLinkBuilder::EDITOR_CUSTOM] = trans(
+                'xitara.nexus::settings.exception.editor_custom',
+            );
+
+            $widget->addTabFields([
+                'nexus_exception_editor_section' => [
+                    'label' => 'xitara.nexus::settings.exception.editor_section',
+                    'comment' => 'xitara.nexus::settings.exception.editor_section_comment',
+                    'type' => 'section',
+                    'tab' => 'xitara.nexus::settings.exception.editor_tab',
+                ],
+                ExceptionEditorLinkBuilder::PREFERENCE_EDITOR => [
+                    'label' => 'xitara.nexus::settings.exception.editor',
+                    'comment' => 'xitara.nexus::settings.exception.editor_comment',
+                    'type' => 'dropdown',
+                    'options' => $editorOptions,
+                    'span' => 'left',
+                    'tab' => 'xitara.nexus::settings.exception.editor_tab',
+                ],
+                ExceptionEditorLinkBuilder::PREFERENCE_CUSTOM_NAME => [
+                    'label' => 'xitara.nexus::settings.exception.custom_name',
+                    'comment' => 'xitara.nexus::settings.exception.custom_name_comment',
+                    'type' => 'text',
+                    'span' => 'right',
+                    'tab' => 'xitara.nexus::settings.exception.editor_tab',
+                    'trigger' => [
+                        'action' => 'show',
+                        'field' => ExceptionEditorLinkBuilder::PREFERENCE_EDITOR,
+                        'condition' => 'value[custom]',
+                    ],
+                ],
+                ExceptionEditorLinkBuilder::PREFERENCE_CUSTOM_TEMPLATE => [
+                    'label' => 'xitara.nexus::settings.exception.custom_template',
+                    'comment' => 'xitara.nexus::settings.exception.custom_template_comment',
+                    'type' => 'text',
+                    'span' => 'full',
+                    'placeholder' => 'xdebug://open?url=file://{file}&line={line}',
+                    'tab' => 'xitara.nexus::settings.exception.editor_tab',
+                    'trigger' => [
+                        'action' => 'show',
+                        'field' => ExceptionEditorLinkBuilder::PREFERENCE_EDITOR,
+                        'condition' => 'value[custom]',
+                    ],
+                ],
+                'nexus_exception_path_mapping_section' => [
+                    'label' => 'xitara.nexus::settings.exception.path_mapping',
+                    'comment' => 'xitara.nexus::settings.exception.path_mapping_comment',
+                    'type' => 'section',
+                    'tab' => 'xitara.nexus::settings.exception.editor_tab',
+                ],
+                ExceptionEditorLinkBuilder::PREFERENCE_SERVER_PATH => [
+                    'label' => 'xitara.nexus::settings.exception.server_path',
+                    'comment' => 'xitara.nexus::settings.exception.server_path_comment',
+                    'type' => 'text',
+                    'span' => 'left',
+                    'tab' => 'xitara.nexus::settings.exception.editor_tab',
+                ],
+                ExceptionEditorLinkBuilder::PREFERENCE_LOCAL_PATH => [
+                    'label' => 'xitara.nexus::settings.exception.local_path',
+                    'comment' => 'xitara.nexus::settings.exception.local_path_comment',
+                    'type' => 'text',
+                    'span' => 'right',
+                    'tab' => 'xitara.nexus::settings.exception.editor_tab',
+                ],
+            ]);
+        });
+    }
+
+    /**
+     * Warns once per session when the configured override cannot be used.
+     */
+    private function bootExceptionCompatibilityWarning(
+        ExceptionViewCompatibility $compatibility,
+    ): void {
+        \Event::listen('backend.page.beforeDisplay', function () use ($compatibility) {
+            try {
+                if (!$this->isExtendedExceptionViewConfigured()) {
+                    return;
+                }
+
+                $status = $compatibility->inspect();
+                if ($status['compatible']) {
+                    return;
+                }
+
+                $warningKey =
+                    'xitara.nexus.exception_view_warning.' . ($status['hash'] ?? $status['reason']);
+                if (\Session::get($warningKey, false)) {
+                    return;
+                }
+
+                $message = trans('xitara.nexus::settings.exception.incompatible_warning');
+                if ($status['hash']) {
+                    $message .=
+                        ' ' .
+                        trans('xitara.nexus::settings.exception.detected_hash', [
+                            'hash' => $status['hash'],
+                        ]);
+                }
+
+                $winterBuild = $this->getWinterBuild();
+                if ($winterBuild !== null) {
+                    $message .=
+                        ' ' .
+                        trans('xitara.nexus::settings.exception.winter_build', [
+                            'build' => $winterBuild,
+                        ]);
+                }
+
+                \Flash::warning($message);
+                \Session::put($warningKey, true);
+            } catch (Throwable $exception) {
+                // A warning must never interfere with normal backend rendering.
+            }
+        });
+    }
+
+    private function isExtendedExceptionViewConfigured(): bool
+    {
+        return in_array(
+            NexusSettings::get('extended_exception_view_enabled', false),
+            [true, 1, '1', 'true'],
+            true,
+        );
+    }
+
+    private function getWinterBuild(): ?string
+    {
+        try {
+            $build = \System\Models\Parameter::get('system::core.build');
+
+            return $build !== null && $build !== '' ? (string) $build : null;
+        } catch (Throwable $exception) {
+            return null;
+        }
+    }
+
+    public function registerSettings(): array
+    {
+        $category = (string) NexusSettings::get('menu_text', '');
+        if ($category === '') {
             $category = 'xitara.nexus::core.settings.name';
         }
 
@@ -232,12 +369,7 @@ class Plugin extends PluginBase
         ];
     }
 
-    /**
-     * Registers any back-end permissions used by this plugin.
-     *
-     * @return array
-     */
-    public function registerPermissions()
+    public function registerPermissions(): array
     {
         $permissions = [
             'xitara.nexus.mainmenu' => [
@@ -266,7 +398,7 @@ class Plugin extends PluginBase
 
         if ($menus !== null) {
             foreach ($menus as $menu) {
-                $permissions['xitara.nexus.custommenu.'.$menu->slug] = [
+                $permissions[$menu->getPermissionCode()] = [
                     'tab' => 'Xitara Nexus Custom Menus',
                     'label' => $menu->name,
                 ];
@@ -276,23 +408,19 @@ class Plugin extends PluginBase
         return $permissions;
     }
 
-    /**
-     * Registers back-end navigation items for this plugin.
-     *
-     * @return array
-     */
-    public function registerNavigation()
+    public function registerNavigation(): array
     {
         $nexus = NexusSettings::instance();
         $iconSvg = '';
 
         if ($nexus->menu_icon_uploaded) {
             $iconSvg = $nexus->menu_icon_uploaded->getPath();
-        } elseif (NexusSettings::get('menu_icon_text', '') == '') {
+        } elseif ((string) NexusSettings::get('menu_icon_text', '') === '') {
             $iconSvg = 'plugins/xitara/nexus/assets/images/icon-nexus.svg';
         }
 
-        if (($label = NexusSettings::get('menu_text')) == '') {
+        $label = (string) NexusSettings::get('menu_text', '');
+        if ($label === '') {
             $label = 'xitara.nexus::lang.submenu.label';
         }
 
@@ -309,51 +437,21 @@ class Plugin extends PluginBase
         ];
     }
 
-    public function registerSchedule($schedule)
+    public function registerSchedule($schedule): void
     {
-        $schedule->call(function () {
-            \Log::debug('Nexus: Schedule call');
-        })->everyMinute();
+        $schedule
+            ->call([BackendUserPurger::class, 'purgeExpired'])
+            ->daily()
+            ->name('xitara.nexus.purge-expired-backend-users')
+            ->withoutOverlapping();
     }
 
     /**
-     * grab sidemenu items
-     * $inject contains addidtional menu-items with the following strcture.
+     * Register the legacy menu bridge for an external plugin.
      *
-     * name = [
-     *     label => string|'placeholder', // placeholder only
-     *     url => [string], (full backend url)
-     *     icon => [string],
-     *     'attributes' => [
-     *         'target' => [string],
-     *         'placeholder' => true|false, // placeholder after elm
-     *         'keywords' => [string],
-     *         'description' => [string],
-     *         'group' => [string], // group the items and set the heading of group
-     *     ],
-     * ]
-     *
-     * name -> unique name
-     * group -> name to sort menu items
-     * label -> shown name in menu
-     * url -> url relative to backend
-     * icon -> icon left of label
-     * attribures -> array (optional)
-     *     target -> _blank|_self (optional)
-     *     keywords -> only for searching (optional)
-     *     description -> showed under label (optional)
-     *
-     * @autor   mburghammer
-     *
-     * @date    2018-05-15T20:49:04+0100
-     *
-     * @version 0.0.3
-     *
-     * @since   0.0.1
-     * @since   0.0.2 added groups
-     * @since   0.0.3 added attributes
+     * @deprecated since 2.4.0; use native registerNavigation() definitions instead
      */
-    public static function getSideMenu(string $owner, string $code)
+    public static function getSideMenu(string $owner, string $code): void
     {
         /*
          * Backwards compatibility for plugins that still contribute their own
@@ -366,7 +464,8 @@ class Plugin extends PluginBase
 
     protected static function baseSideMenuItems(): array
     {
-        if (($group = NexusSettings::get('menu_text')) == '') {
+        $group = (string) NexusSettings::get('menu_text', '');
+        if ($group === '') {
             $group = 'xitara.nexus::lang.submenu.label';
         }
 
@@ -375,10 +474,7 @@ class Plugin extends PluginBase
                 'label' => 'xitara.nexus::lang.nexus.dashboard',
                 'url' => \Backend::url('xitara/nexus/dashboard'),
                 'icon' => 'icon-dashboard',
-                'permissions' => [
-                    'xitara.nexus.mainmenu',
-                    'xitara.nexus.dashboard',
-                ],
+                'permissions' => ['xitara.nexus.mainmenu', 'xitara.nexus.dashboard'],
                 'attributes' => [
                     'group' => $group,
                 ],
@@ -408,7 +504,7 @@ class Plugin extends PluginBase
     }
 
     /**
-     * @return mixed
+     * @deprecated since 2.4.0; native side-menu item orders are local to their source
      */
     public static function getMenuOrder(string $code): int
     {
@@ -422,128 +518,78 @@ class Plugin extends PluginBase
     }
 
     /**
-     * inject into sidemenu.
-     *
-     * @autor   mburghammer
-     *
-     * @date    2020-06-26T21:13:34+02:00
-     *
-     * @see Xitara\Nexus::getSideMenu
-     *
-     * @return array sidemenu-data
-     */
-    public static function injectSideMenu()
-    {
-        // Log::debug(__METHOD__);
-
-        $custommenus = CustomMenu::where('is_submenu', 1)
-            ->where('is_active', 1)
-            ->get();
-
-        $inject = [];
-        foreach ($custommenus as $custommenu) {
-            $count = 0;
-            // Log::debug('-- ' . $custommenu->slug);
-            // Log::debug('>> ' . $custommenu->namespace);
-
-            $namespace = $custommenu->namespace !== null
-                ? strtolower(str_replace('\\', '.', $custommenu->namespace))
-                : $custommenu->slug.'.custommenulist';
-
-            // Log::debug('== ' . $namespace);
-
-            foreach ($custommenu->links as $i => $link) {
-                if ($link['is_active'] == 1) {
-                    $icon = $iconSvg = null;
-
-                    if (isset($link['icon']) && $link['icon'] != '') {
-                        $icon = $link['icon'];
-                    }
-
-                    if (isset($link['icon_image']) && $link['icon_image'] != '') {
-                        $iconSvg = url(\Config::get('cms.storage.media.path').$link['icon_image']);
-                    }
-
-                    $inject[$namespace.'.'.\Str::slug($link['text'])] = [
-                        'label' => $link['text'],
-                        'url' => $link['link'],
-                        'icon' => $icon ?? null,
-                        'iconSvg' => $iconSvg,
-                        'permissions' => [
-                            $namespace.'.'.$custommenu->slug,
-                        ],
-                        'attributes' => [
-                            'group' => $namespace.'.'.$custommenu->slug,
-                            'groupLabel' => $custommenu->name,
-                            'target' => ($link['is_blank'] == 1) ? '_blank' : null,
-                            'keywords' => $link['keywords'] ?? null,
-                            'description' => $link['description'] ?? null,
-                        ],
-                        'order' => self::getMenuOrder($custommenu->getNexusGroupCode()) + $count++,
-                    ];
-                }
-            }
-        }
-
-        // Log::debug($inject);
-
-        return $inject;
-    }
-
-    /**
      * Extend translate plugin.
      */
-    private function bootTranslateExtend()
+    private function bootTranslateExtend(): void
     {
-        if (class_exists("\Winter\Translate\Models\Locale")) {
-            \Winter\Translate\Models\Locale::extend(function ($model) {
-                $model->addFillable([
-                    'nexus_timezone',
-                ]);
-            });
-
-            /*
-             * add dropdown
-             */
-            \Winter\Translate\Controllers\Locales::extendFormFields(function ($widget) {
-                if (!$widget->model instanceof \Winter\Translate\Models\Locale) {
-                    return;
-                }
-
-                if ($widget->isNested) {
-                    return;
-                }
-
-                $configFile = __DIR__.'/config/timezone.yaml';
-                $config = \Yaml::parse(\File::get($configFile));
-                $widget->addFields($config['fields']);
-            });
-
-            /*
-             * add dropdown options
-             */
-            \Winter\Translate\Models\Locale::extend(function ($model) {
-                $model->addDynamicMethod('getNexusTimezoneOptions', function () {
-                    $timezones = (new Preference())->getTimezoneOptions();
-                    array_unshift($timezones, e(trans('xitara.nexus::settings.no_timezone')));
-
-                    return $timezones;
-                });
-            });
-
-            /*
-             * set timezone to null if option is 0 (no timezone)
-             */
-            \Winter\Translate\Models\Locale::extend(function ($model) {
-                $model->bindEvent('model.beforeSave', function () use ($model) {
-                    \Log::debug($model->nexus_timezone);
-
-                    if ($model->nexus_timezone == '0') {
-                        $model->nexus_timezone = null;
-                    }
-                });
-            });
+        if (
+            !class_exists('\Winter\Translate\Models\Locale') ||
+            !\Schema::hasTable('winter_translate_locales') ||
+            !\Schema::hasTable('xitara_nexus_locale_timezones')
+        ) {
+            return;
         }
+
+        \Winter\Translate\Models\Locale::extend(function ($model) {
+            $originalLocaleCode = null;
+
+            $model->addFillable(['nexus_timezone']);
+            $model->addPurgeable('nexus_timezone');
+
+            $model->bindEvent('model.afterFetch', function () use ($model): void {
+                $model->nexus_timezone = LocaleTimezone::forLocaleCode((string) $model->code);
+            });
+
+            $model->bindEvent('model.beforeSave', function () use (
+                $model,
+                &$originalLocaleCode,
+            ): void {
+                $originalLocaleCode = $model->exists ? (string) $model->getOriginal('code') : null;
+            });
+
+            $model->bindEvent('model.afterSave', function () use (
+                $model,
+                &$originalLocaleCode,
+            ): void {
+                $localeCode = (string) $model->code;
+
+                LocaleTimezone::storeForLocaleCode(
+                    $localeCode,
+                    $model->getOriginalPurgeValue('nexus_timezone'),
+                );
+
+                if ($originalLocaleCode && $originalLocaleCode !== $localeCode) {
+                    LocaleTimezone::forgetLocaleCode($originalLocaleCode);
+                }
+            });
+
+            $model->bindEvent('model.afterDelete', function () use ($model): void {
+                LocaleTimezone::forgetLocaleCode((string) $model->code);
+            });
+        });
+
+        if (!\App::runningInBackend()) {
+            return;
+        }
+
+        \Winter\Translate\Controllers\Locales::extendFormFields(function ($widget) {
+            if (!($widget->model instanceof \Winter\Translate\Models\Locale) || $widget->isNested) {
+                return;
+            }
+
+            $configFile = __DIR__ . '/config/timezone.yaml';
+            $config = \Yaml::parse(\File::get($configFile));
+            $widget->addFields($config['fields']);
+        });
+
+        \Winter\Translate\Models\Locale::extend(function ($model) {
+            $model->addDynamicMethod('getNexusTimezoneOptions', function () {
+                $timezones = (new Preference())->getTimezoneOptions();
+                array_unshift($timezones, e(trans('xitara.nexus::settings.no_timezone')));
+
+                return $timezones;
+            });
+        });
     }
 
     public static function getTimezone($localecode = null): string
@@ -556,16 +602,22 @@ class Plugin extends PluginBase
      */
     private static function timezone($localecode): string
     {
+        if (
+            !class_exists('\Winter\Translate\Models\Locale') ||
+            !\Schema::hasTable('winter_translate_locales') ||
+            !\Schema::hasTable('xitara_nexus_locale_timezones')
+        ) {
+            return \Config::get('app.timezone');
+        }
+
         if ($localecode === null) {
             $localecode = \Winter\Translate\Classes\Translator::instance()->getLocale();
         }
 
-        $locale = \Winter\Translate\Models\Locale::findByCode($localecode);
-
-        return $locale->nexus_timezone ?? \Config::get('app.timezone');
+        return LocaleTimezone::forLocaleCode((string) $localecode) ?: \Config::get('app.timezone');
     }
 
-    public static function slug($title, $separator = '-', $language = null)
+    public static function slug($title, $separator = '-', $language = null): string
     {
         if ($language === null) {
             $language = \Session::get('locale');

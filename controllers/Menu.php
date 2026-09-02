@@ -16,9 +16,7 @@ class Menu extends Controller
 {
     public $requiredPermissions = ['xitara.nexus.menu'];
 
-    public $implement = [
-        'Backend.Behaviors.ReorderController',
-    ];
+    public $implement = ['Backend.Behaviors.ReorderController'];
 
     public $reorderConfig = 'config_reorder.yaml';
 
@@ -41,12 +39,14 @@ class Menu extends Controller
         $menu->is_enabled = !$menu->is_enabled;
         $menu->save();
 
-        Flash::success(Lang::get(
-            $menu->is_enabled
-                ? 'xitara.nexus::lang.menu_configuration.enabled'
-                : 'xitara.nexus::lang.menu_configuration.disabled',
-            ['name' => $menu->display_name]
-        ));
+        Flash::success(
+            Lang::get(
+                $menu->is_enabled
+                    ? 'xitara.nexus::lang.menu_configuration.enabled'
+                    : 'xitara.nexus::lang.menu_configuration.disabled',
+                ['name' => $menu->display_name],
+            ),
+        );
     }
 
     public function onRefreshSources()
@@ -65,7 +65,8 @@ class Menu extends Controller
         $query->where(function ($query) use ($navigationSources, $customMenuCodes) {
             foreach ($navigationSources as $source) {
                 $query->orWhere(function ($query) use ($source) {
-                    $query->where('owner', $source['owner'])
+                    $query
+                        ->where('owner', $source['owner'])
                         ->where('main_menu_code', $source['main_menu_code']);
                 });
             }

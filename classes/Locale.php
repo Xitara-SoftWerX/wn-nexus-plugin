@@ -53,9 +53,7 @@ class Locale
      */
     public static function getSiteLocaleFromContext()
     {
-        $site = App::runningInBackend()
-            ? Site::getEditSite()
-            : Site::getActiveSite();
+        $site = App::runningInBackend() ? Site::getEditSite() : Site::getActiveSite();
 
         return $site ? $site->hard_locale : '';
     }
@@ -179,7 +177,10 @@ class Locale
             return self::$cacheListEnabled;
         }
 
-        return self::$cacheListEnabled = self::listLocales()->where('is_enabled', true)->pluck('name', 'code')->all();
+        return self::$cacheListEnabled = self::listLocales()
+            ->where('is_enabled', true)
+            ->pluck('name', 'code')
+            ->all();
     }
 
     /**

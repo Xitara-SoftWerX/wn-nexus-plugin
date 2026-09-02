@@ -1,22 +1,4 @@
-$font-1: arial;
-$font-2: orbitron;
-$font-3: 'Exo 2';
-$font-4: michroma;
-$font-5: revalia;
-$font-6: 'Seven Segment Regular';
-$font-7: vt323;
-
-$default-gap: 2rem;
-
-//navigation and burger
-$nav-height: 5rem;
-
-$burger-top: 2rem;
-$burger-right: 2rem;
-$burger-width: 5rem;
-$burger-height: 2rem;
-
-// container (uncomment to override default)
+// Bootstrap container overrides
 $container-max-widths: (
     sm: 540px,
     md: 760px,
@@ -26,7 +8,7 @@ $container-max-widths: (
     3xl: 1530px,
 );
 
-// breakpoints (uncomment to override default)
+// Bootstrap breakpoint overrides
 $grid-breakpoints: (
     xs: 0,
     sm: 576px,
@@ -37,6 +19,7 @@ $grid-breakpoints: (
     3xl: 1600px,
 );
 
+// Bootstrap typography overrides
 $font-sans-serif:
     system-ui,
     -apple-system,
@@ -51,7 +34,7 @@ $font-sans-serif:
     'Segoe UI Emoji',
     'Segoe UI Symbol',
     'Noto Color Emoji';
-$body-font-family: $font-1, $font-2, $font-3, $font-4, $font-sans-serif;
+$body-font-family: arial, orbitron, 'Exo 2', michroma, $font-sans-serif;
 $body-font-size: 1rem;
 $body-font-weight: 400;
 $body-line-height: 1.5;

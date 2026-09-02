@@ -2,6 +2,7 @@
 
 use Winter\Storm\Support\Facades\Config;
 
+// Deprecated since 2.4.0; retained through the 2.x line for unknown external consumers.
 Route::get('/xitara/nexus/jsvars.js', function () {
     $urls = [
         'media' => url(Config::get('cms.storage.media.path')),

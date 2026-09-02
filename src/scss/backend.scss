@@ -1,14 +1,5 @@
-// Variables
-@import 'abstracts/variables';
-
-// Breakpoints
-@import 'abstracts/breakpoints';
-
-// Mixins
-@import 'abstracts/mixins';
-
-// Backend navigation
-@import 'partials/submenu';
+@use 'abstracts/colors';
+@use 'partials/submenu';
 
 .center-switch {
     padding-block: 2.5rem;

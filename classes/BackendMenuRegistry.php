@@ -43,7 +43,7 @@ class BackendMenuRegistry
 
     public static function sourceKey(string $owner, string $mainMenuCode): string
     {
-        return strtoupper($owner).'/'.$mainMenuCode;
+        return strtoupper($owner) . '/' . $mainMenuCode;
     }
 
     public static function customMenuCodes(): array
@@ -55,9 +55,11 @@ class BackendMenuRegistry
         string $owner,
         string $mainMenuCode,
         ?string $sourceSideMenuCode,
-        string $targetSideMenuCode
+        string $targetSideMenuCode,
     ): void {
-        static::$contextMap[static::contextKey($owner, $mainMenuCode, $sourceSideMenuCode)] = $targetSideMenuCode;
+        static::$contextMap[
+            static::contextKey($owner, $mainMenuCode, $sourceSideMenuCode)
+        ] = $targetSideMenuCode;
     }
 
     public static function remapCurrentContext(): void
@@ -68,9 +70,13 @@ class BackendMenuRegistry
             return;
         }
 
-        $exactKey = static::contextKey($context->owner, $context->mainMenuCode, $context->sideMenuCode);
+        $exactKey = static::contextKey(
+            $context->owner,
+            $context->mainMenuCode,
+            $context->sideMenuCode,
+        );
         $defaultKey = static::contextKey($context->owner, $context->mainMenuCode, null);
-        $target = static::$contextMap[$exactKey] ?? static::$contextMap[$defaultKey] ?? null;
+        $target = static::$contextMap[$exactKey] ?? (static::$contextMap[$defaultKey] ?? null);
 
         if ($target === null) {
             return;
@@ -104,7 +110,10 @@ class BackendMenuRegistry
 
             if ($model === null) {
                 $model = new Menu();
-                $model->code = Menu::makeNavigationCode($source['owner'], $source['main_menu_code']);
+                $model->code = Menu::makeNavigationCode(
+                    $source['owner'],
+                    $source['main_menu_code'],
+                );
                 $model->sort_order = $nextSortOrder;
                 $model->is_enabled = $source['is_legacy'];
                 $nextSortOrder += 100;
@@ -127,8 +136,9 @@ class BackendMenuRegistry
             return static::$menuTableReady;
         }
 
-        return static::$menuTableReady = Schema::hasTable('xitara_nexus_menus')
-            && Schema::hasColumns('xitara_nexus_menus', [
+        return static::$menuTableReady =
+            Schema::hasTable('xitara_nexus_menus') &&
+            Schema::hasColumns('xitara_nexus_menus', [
                 'owner',
                 'main_menu_code',
                 'source_type',
@@ -166,8 +176,11 @@ class BackendMenuRegistry
         }
     }
 
-    protected static function contextKey(string $owner, ?string $mainMenuCode, ?string $sideMenuCode): string
-    {
-        return strtoupper($owner).'|'.($mainMenuCode ?? '').'|'.($sideMenuCode ?? '');
+    protected static function contextKey(
+        string $owner,
+        ?string $mainMenuCode,
+        ?string $sideMenuCode,
+    ): string {
+        return strtoupper($owner) . '|' . ($mainMenuCode ?? '') . '|' . ($sideMenuCode ?? '');
     }
 }

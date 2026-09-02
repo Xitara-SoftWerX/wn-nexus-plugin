@@ -3,11 +3,13 @@
         <?= e(trans('backend::lang.user.new')) ?>
     </a>
     <?php if ($this->user->isSuperUser()): ?>
-        <a href="<?= Backend::url('backend/userroles') ?>" class="btn btn-default oc-icon-address-card">
+        <a href="<?= Backend::url(
+            'backend/userroles',
+        ) ?>" class="btn btn-default oc-icon-address-card">
             <?= e(trans('backend::lang.user.role.list_title')) ?>
         </a>
         <a href="<?= Backend::url('backend/usergroups') ?>" class="btn btn-default oc-icon-group">
             <?= e(trans('backend::lang.user.group.list_title')) ?>
         </a>
-    <?php endif ?>
+    <?php endif; ?>
 </div>

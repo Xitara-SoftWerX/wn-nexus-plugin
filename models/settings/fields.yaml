@@ -18,14 +18,6 @@ tabs:
             span: storm
             cssClass: col-md-3
             comment: xitara.nexus::settings.is_compact_display_comment
-        is_twig_filters:
-            label: xitara.nexus::settings.is_twig_filters
-            tab: xitara.nexus::settings.tab.menu
-            type: switch
-            span: storm
-            cssClass: col-md-3
-            comment: xitara.nexus::settings.is_twig_filters_comment
-            permissions: xitara.nexus.twig_filter
         menu_icon_uploaded:
             label: xitara.nexus::settings.menu_icon
             tab: xitara.nexus::settings.tab.menu
@@ -52,6 +44,19 @@ tabs:
             comment: xitara.nexus::settings.dashboard_text_comment
             commentHtml: true
 
+        extended_exception_view_enabled:
+            label: xitara.nexus::settings.exception.enabled
+            comment: xitara.nexus::settings.exception.enabled_comment
+            tab: xitara.nexus::settings.tab.exception
+            type: switch
+            span: left
+        exception_view_compatibility:
+            label: xitara.nexus::settings.exception.compatibility
+            tab: xitara.nexus::settings.tab.exception
+            type: partial
+            path: $/xitara/nexus/models/settings/_exception_compatibility.php
+            span: full
+
         default_email:
             label: xitara.nexus::settings.default_email
             comment: xitara.nexus::settings.default_email_comment
@@ -60,7 +65,7 @@ tabs:
             span: left
         default_email_name:
             label: xitara.nexus::settings.default_email_name
-            # comment: xitara.nexus::settings.default_email_name_comment
+            comment: xitara.nexus::settings.default_email_name_comment
             tab: xitara.nexus::settings.tab.default
             type: text
             span: right

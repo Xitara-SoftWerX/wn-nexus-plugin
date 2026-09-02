@@ -1,6 +1,8 @@
 /assets/
 /.cache/
 /.docs/
+/docs/
+/AGENTS.md
 /config/
 /dist/
 /node_modules/

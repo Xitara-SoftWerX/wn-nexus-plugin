@@ -112,7 +112,7 @@ class Menu extends Model
      */
     public static function makeNavigationCode(string $owner, string $mainMenuCode): string
     {
-        return 'nav:'.sha1(strtoupper($owner).'/'.$mainMenuCode);
+        return 'nav:' . sha1(strtoupper($owner) . '/' . $mainMenuCode);
     }
 
     public function getDisplayNameAttribute(): string
@@ -122,7 +122,7 @@ class Menu extends Model
         }
 
         if ($this->owner && $this->main_menu_code) {
-            return $this->owner.' / '.$this->main_menu_code;
+            return $this->owner . ' / ' . $this->main_menu_code;
         }
 
         return (string) $this->code;

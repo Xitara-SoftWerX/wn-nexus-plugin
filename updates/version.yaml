@@ -30,3 +30,10 @@
 2.2.0:
     - 'Modernize backend navigation aggregation and menu configuration'
     - v2.2.0/extend_menus_table.php
+2.3.0:
+    - 'Add optional compatible exception view with per-user editor links'
+2.4.0:
+    - 'Modernize retained Nexus services and remove obsolete runtime features'
+    - v2.4.0/create_locale_timezones_table.php
+    - v2.4.0/add_nexus_deletion_requested_at_to_backend_users.php
+    - v2.4.0/drop_unused_configs_table.php

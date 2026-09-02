@@ -3,101 +3,70 @@
 namespace Xitara\Nexus\Controllers;
 
 use Backend\Classes\Controller;
+use Backend\Traits\InspectableContainer;
 use Backend\Widgets\ReportContainer;
 use BackendMenu;
 use Cms\Classes\Theme;
 
 /**
- * Dashboard Back-end Controller
+ * Displays Winter's report-widget dashboard inside the Nexus menu context.
  */
 class Dashboard extends Controller
 {
-    public $requiredPermissions = [
-        'xitara.nexus.mainmenu',
-        'xitara.nexus.dashboard',
-    ];
+    use InspectableContainer;
 
-    public $implement = [
-        // 'Backend.Behaviors.FormController',
-        // 'Backend.Behaviors.ListController',
-    ];
-
-    // public $formConfig = 'config_form.yaml';
-    public $listConfig = [
-        // 'paybacks' => 'config_payback_list.yaml',
-        // 'bonuses' => 'config_bonus_list.yaml',
-    ];
+    /**
+     * Every authenticated backend user may open the landing page. The view
+     * decides whether to render report widgets or the configured fallback.
+     *
+     * @var array
+     */
+    public $requiredPermissions = [];
 
     public function __construct()
     {
         parent::__construct();
-        BackendMenu::setContextOwner('Xitara.Nexus');
+
         BackendMenu::setContext('Xitara.Nexus', 'nexus', 'nexus.dashboard');
-
-        $this->pageTitle = 'xitara.nexus::core.submenu.dashboard';
+        $this->addCss('/modules/backend/assets/css/dashboard/dashboard.css', 'core');
     }
 
-    // public function componentDetails()
-    // {
-    //     return [
-    //         'name' => 'xitara.nexus::lang.nexus.dashboard',
-    //         'description' => 'xitara.nexus::lang.nexus.dashboardDescription',
-    //     ];
-    // }
-
-    public function index()
+    public function index(): void
     {
+        if ($this->user->hasAccess('xitara.nexus.dashboard')) {
+            $this->initReportContainer();
+        }
+
+        $this->pageTitle = 'backend::lang.dashboard.menu_label';
+    }
+
+    public function index_onInitReportContainer(): array
+    {
+        if (!$this->user->hasAccess('xitara.nexus.dashboard')) {
+            abort(403, trans('backend::lang.page.access_denied.label'));
+        }
+
         $this->initReportContainer();
-        // $this->pageTitle = 'xitara.nexus::lang.plugin.name';
 
-        // $this->asExtension('ListController')->index();
+        return ['#dashReportContainer' => $this->widget->reportContainer->render()];
     }
 
     /**
-     * Prepare the report widget used by the dashboard
-     *
-     * Default config can be overridden by adding a file [THEME]/config/dashboard.yaml
-     *
-     * @param  Model $model
-     * @return void
+     * Prepare Winter's normal dashboard container while allowing the existing
+     * optional theme-level default-widget configuration.
      */
-    protected function initReportContainer()
+    protected function initReportContainer(): void
     {
-        $config = 'config.yaml';
+        $config = '~/modules/backend/controllers/index/config_dashboard.yaml';
+
         if ($theme = Theme::getActiveTheme()) {
-            if (file_exists(themes_path($theme->getDirName() . '/config/dashboard.yaml'))) {
-                $config = themes_path($theme->getDirName() . '/config/dashboard.yaml');
+            $themeConfig = themes_path($theme->getDirName() . '/config/dashboard.yaml');
+
+            if (is_file($themeConfig)) {
+                $config = $themeConfig;
             }
         }
 
-        $container = new ReportContainer($this, $config);
-        $container->bindToController();
-
-        return $container;
-    }
-
-    public function index_onInitReportContainer()
-    {
-        $container = $this->initReportContainer();
-
-        return ['#nexusReportContainer' => $container->render()];
-    }
-
-    /**
-     * Custom permissions check that will redirect to the next
-     * available menu item, if permission to this page is denied.
-     */
-    protected function checkPermissionRedirect()
-    {
-        if (!$this->user->hasAccess('xitara.nexus.dashboard') && !$this->user->hasAccess('xitara.nexus.show')) {
-
-            $true = function () {
-                return true;
-            };
-
-            if ($first = array_first(BackendMenu::listMainMenuItems(), $true)) {
-                return Redirect::intended($first->url);
-            }
-        }
+        new ReportContainer($this, $config);
     }
 }

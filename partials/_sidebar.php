@@ -23,7 +23,9 @@
                 type="button"
                 class="nexus-sidebar-mobile-close"
                 data-nexus-sidebar-close
-                aria-label="<?= e(trans('xitara.nexus::lang.menu_configuration.close_navigation')) ?>">
+                aria-label="<?= e(
+                    trans('xitara.nexus::lang.menu_configuration.close_navigation'),
+                ) ?>">
                 <i class="icon-times" aria-hidden="true"></i>
             </button>
         </div>

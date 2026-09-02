@@ -1,13 +1,13 @@
 {
     "name": "wn-nexus-plugin",
-    "version": "2.0.0",
+    "version": "2.4.0",
     "description": "Xitara Nexus Plugin for Winter CMS with sidemenu, custom menus, menu sorting and more",
     "author": "Manuel Burghammer",
-    "license": "MIT",
+    "license": "MPL-2.0",
     "type": "module",
     "repository": {
         "type": "git",
-        "url": "https://github.com/xitara/wn-plugin-nexus.git"
+        "url": "https://github.com/xitara/wn-nexus-plugin.git"
     },
     "scripts": {
         "setup": "node ./scripts/setup.js && node ./scripts/composer.js",
@@ -33,10 +33,12 @@
         "format": "prettier --write .",
         "format-check": "prettier --check .",
         "test-build": "node ./scripts/check-build.js",
-        "test-unit": "node --test 'test/**/*.test.js'",
+        "test-integration": "NEXUS_RUN_DB_TESTS=1 php test/integration.php",
+        "test-unit": "node --test 'test/**/*.test.js' && php test/exception-tools.php",
         "test": "yarn lint && yarn format-check && yarn test-unit && yarn build && yarn test-build",
         "cleanup": "node ./scripts/cleanup.js",
         "ncu": "ncu -u",
+        "update-browserslist": "npx --yes update-browserslist-db@latest",
         "start": "webpack serve --open --mode development --progress"
     },
     "devDependencies": {

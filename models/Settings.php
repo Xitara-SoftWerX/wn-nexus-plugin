@@ -2,6 +2,7 @@
 
 namespace Xitara\Nexus\Models;
 
+use Config;
 use Model;
 
 /**
@@ -25,15 +26,34 @@ use Model;
  */
 class Settings extends Model
 {
+    use \Winter\Storm\Database\Traits\Validation;
+
     public $implement = ['System.Behaviors.SettingsModel'];
     public $settingsCode = 'xitara_nexus_setting';
     public $settingsFields = 'fields.yaml';
 
-    public $attachOne = [
-        'menu_icon_uploaded' => [
-            '\System\Models\File',
-            'public' => false,
-        ],
+    public $rules = [
+        'default_email' => 'nullable|email',
     ];
 
+    public $attachOne = [
+        'menu_icon_uploaded' => ['\System\Models\File', 'public' => false],
+    ];
+
+    /**
+     * Return the canonical recipient for future Xitara system notifications.
+     * Empty Nexus values fall back to Winter's configured sender identity.
+     *
+     * @return array{email: string, name: string}
+     */
+    public static function getNotificationRecipient(): array
+    {
+        $email = trim((string) static::get('default_email', ''));
+        $name = trim((string) static::get('default_email_name', ''));
+
+        return [
+            'email' => $email !== '' ? $email : (string) Config::get('mail.from.address', ''),
+            'name' => $name !== '' ? $name : (string) Config::get('mail.from.name', ''),
+        ];
+    }
 }

@@ -1,3 +1,5 @@
+@use '../abstracts/breakpoints' as breakpoints;
+
 $nexus-menu-width: 320px;
 $nexus-menu-transition: 180ms ease;
 
@@ -180,7 +182,7 @@ $nexus-menu-transition: 180ms ease;
     }
 }
 
-@include breakpoint(phone-and-down) {
+@include breakpoints.breakpoint(phone-and-down) {
     body.nexus-sidebar-open {
         overflow: hidden;
     }

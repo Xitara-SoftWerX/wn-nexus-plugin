@@ -84,10 +84,7 @@ class CustomMenu extends Model
     /**
      * @var array Attributes to be cast to Argon (Carbon) instances
      */
-    protected $dates = [
-        'created_at',
-        'updated_at',
-    ];
+    protected $dates = ['created_at', 'updated_at'];
 
     /**
      * @var array Relations
@@ -122,10 +119,10 @@ class CustomMenu extends Model
         $groupCode = $this->getNexusGroupCode();
 
         if (!$this->is_submenu) {
-            Menu::whereIn('code', array_filter([
-                $this->originalNexusGroupCode,
-                $groupCode,
-            ]))->delete();
+            Menu::whereIn(
+                'code',
+                array_filter([$this->originalNexusGroupCode, $groupCode]),
+            )->delete();
 
             return;
         }
@@ -158,13 +155,37 @@ class CustomMenu extends Model
         return $this->makeNexusGroupCode($this->slug, $this->namespace);
     }
 
+    public function getPermissionCode(): string
+    {
+        $slug = $this->slug ?: Str::slug($this->name);
+
+        return 'xitara.nexus.custommenu.' . $slug;
+    }
+
+    /**
+     * Permission key used by the legacy custom-menu renderer. It remains an
+     * alias for one transition release so existing role assignments keep
+     * working.
+     */
+    public function getLegacyPermissionCode(): string
+    {
+        return $this->getNexusGroupCode();
+    }
+
+    public function getNavigationNamespace(): string
+    {
+        return $this->namespace
+            ? strtolower(str_replace('\\', '.', $this->namespace))
+            : ($this->slug ?: Str::slug($this->name)) . '.custommenulist';
+    }
+
     protected function makeNexusGroupCode(?string $slug, ?string $namespace): string
     {
         $slug = $slug ?: Str::slug($this->name);
         $namespace = $namespace
             ? strtolower(str_replace('\\', '.', $namespace))
-            : $slug.'.custommenulist';
+            : $slug . '.custommenulist';
 
-        return $namespace.'.'.$slug;
+        return $namespace . '.' . $slug;
     }
 }

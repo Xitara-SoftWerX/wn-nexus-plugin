@@ -8,6 +8,7 @@ import {
     isVersionedEntryAsset,
     resolveEntryPoints,
 } from '../webpack/entrypoints.js';
+import { config } from '../webpack.meta.js';
 
 const fixtureRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
@@ -88,4 +89,13 @@ test('keeps previous files belonging to versioned entries', () => {
     assert.equal(isVersionedEntryAsset('css/theme-2.0.0.css', versions), true);
     assert.equal(isVersionedEntryAsset('js/other-1.0.0.js', versions), false);
     assert.equal(isVersionedEntryAsset('js/app.js', versions), false);
+});
+
+test('builds application scripts from TypeScript entry points', () => {
+    assert.deepEqual(config.entrypoints, {
+        app: './ts/app.ts',
+        backend: './ts/backend.ts',
+        compact: './scss/compact.scss',
+        exception: './scss/exception.scss',
+    });
 });

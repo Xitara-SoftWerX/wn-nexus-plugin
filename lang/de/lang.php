@@ -23,7 +23,8 @@ return [
         'label' => 'Seitennavigation',
         'description' => 'Backend-Menübereiche auswählen und sortieren',
         'heading' => 'Seitennavigation konfigurieren',
-        'help' => 'Aktivierte Menübereiche werden unter Nexus zusammengefasst. Ziehen Sie die Einträge, um die Reihenfolge der Gruppen festzulegen.',
+        'help' =>
+            'Aktivierte Menübereiche werden unter Nexus zusammengefasst. Ziehen Sie die Einträge, um die Reihenfolge der Gruppen festzulegen.',
         'refresh' => 'Menübereiche aktualisieren',
         'refreshed' => 'Die verfügbaren Menübereiche wurden aktualisiert.',
         'enabled' => '":name" wird im Nexus-Menü angezeigt.',
@@ -49,7 +50,8 @@ return [
         ],
         'namespace' => [
             'label' => 'Namespace',
-            'comment' => 'Der Namespace des Menüs. Wird für die Zuordnung der Menüpunkte und die Übersetzung benötigt. (optional)',
+            'comment' =>
+                'Der Namespace des Menüs. Wird für die Zuordnung der Menüpunkte und die Übersetzung benötigt. (optional)',
         ],
         'is_submenu' => 'Im Seitenmenü anzeigen',
         'is_active' => 'Aktiv',
@@ -58,11 +60,15 @@ return [
         'text' => 'Text',
         'is_blank' => 'Link im neuen Fenster/Tab öffnen',
         'icon' => 'Icon',
-        'icon_comment' => 'Entweder aus dem <a href="https://octobercms.com/docs/ui/icon" target="_blank">Iconpool</a> oder eine Datei aus dem Medienpool. Beides ist optional.',
+        'icon_comment' =>
+            'Entweder aus dem <a href="https://octobercms.com/docs/ui/icon" target="_blank">Iconpool</a> oder eine Datei aus dem Medienpool. Beides ist optional.',
     ],
     'deleteAccount' => [
         'label' => 'Account löschen',
-        'comment' => 'Der Account wird deaktiviert. Anschliessend ist kein Login mehr möglich. Nach 14 Tagen wird der Account unwiderruflich gelöscht.',
-        'confirm' => 'Wollen Sie ihren Account wirklich löschen?',
+        'comment' =>
+            'Der Account wird deaktiviert. Anschliessend ist kein Login mehr möglich. Nach 14 Tagen wird der Account unwiderruflich gelöscht.',
+        'confirm' =>
+            'Möchten Sie Ihren Account wirklich deaktivieren und nach 14 Tagen endgültig löschen lassen?',
+        'success' => 'Der Account wurde deaktiviert und wird nach 14 Tagen endgültig gelöscht.',
     ],
 ];
